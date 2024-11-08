@@ -1,0 +1,31 @@
+# This is a sample config file that is used when atun cli is ued to deploy a Bastion Host.
+# It's not required when connecting to an existing Bastion Host that is tagged with atun-compatible tags.
+
+# aws_profile="<aws-profile-id>"
+# aws_region="us-east-1"
+# bastion_subnet="subnet-xxxxxxxxxxxxxxxx"
+# bastion_vpc_id="vpc-xxxxxxxx"
+
+[[hosts]]
+name = "target-vpc-host-1"
+proto = "ssm"
+remote = "22"
+local = "10001"
+
+[[hosts]]
+name = "target-vpc-host-2"
+proto = "ssm"
+remote = "443"
+local = "10002"
+
+[[hosts]]
+name = "target-vpc-host-3"
+proto = "ssm"
+remote = "443"
+local = "10003"
+
+[[hosts]]
+name = "target-vpc-host-4"
+proto = "ssm"
+remote = "4444"
+local = "10005"
