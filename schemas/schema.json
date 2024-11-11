@@ -9,6 +9,11 @@
       "description": "Version tag for the schema",
       "pattern": "^[0-9]+$"
     },
+    "atun.io/env": {
+      "type": "string",
+      "description": "Env tag for the environment",
+      "pattern": "^.*$"
+    },
     "atun.io/host": {
       "type": "object",
       "patternProperties": {
@@ -39,6 +44,6 @@
       "description": "Host configuration tags with hostname and forwarding details"
     }
   },
-  "required": ["atun.io/version", "atun.io/host"],
+  "required": ["atun.io/version","atun.io/env","atun.io/host"],
   "additionalProperties": false
 }
