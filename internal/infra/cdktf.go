@@ -97,12 +97,12 @@ func CreateStack(c *config.Config) {
 	tags["atun.io/version"] = atun.Version
 
 	// Group hosts by their Name and create slices for their configurations
-	hostConfigs := make(map[string][]map[string]string)
+	hostConfigs := make(map[string][]map[string]interface{})
 
 	// Process each host and add it to the final map using the Name as the key
 	for _, host := range atun.Hosts {
 		key := fmt.Sprintf("atun.io/host/%s", host.Name)
-		hostConfig := map[string]string{
+		hostConfig := map[string]interface{}{
 			"proto":  host.Proto,
 			"local":  host.Local,
 			"remote": host.Remote,

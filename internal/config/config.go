@@ -53,10 +53,10 @@ type Config struct {
 }
 
 type Host struct {
-	Name   string `json:"-" jsonschema:"-"`
+	Name   string `jsonschema:"-"`
 	Proto  string `json:"proto" jsonschema:"proto"`
-	Remote string `json:"remote" jsonschema:"remote"`
-	Local  string `json:"local" jsonschema:"local"`
+	Remote int    `json:"remote" jsonschema:"remote"`
+	Local  int    `json:"local" jsonschema:"local"`
 }
 
 var App *Atun

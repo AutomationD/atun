@@ -31,6 +31,8 @@ import (
 )
 
 func NewEC2Client() (*ec2.EC2, error) {
+	logger.Debug("Creating EC2 client.", "profile", config.App.Config.AWSProfile, "awsRegion", config.App.Config.AWSRegion)
+
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Region: aws.String(config.App.Config.AWSRegion),
@@ -43,7 +45,6 @@ func NewEC2Client() (*ec2.EC2, error) {
 
 	ec2Client := ec2.New(sess)
 
-	logger.Debug("Created EC2 client with profile %s and region %s", config.App.Config.AWSProfile, config.App.Config.AWSRegion)
 	return ec2Client, nil
 }
 
@@ -68,7 +69,12 @@ func NewSTSClient() (*sts.STS, error) {
 func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 	ec2Client, err := NewEC2Client()
 	if err != nil {
+		logger.Error("Failed to create EC2 client", "error", err)
 		return nil, err
+	}
+
+	if len(tags) == 0 {
+		return nil, fmt.Errorf("no tags provided for filtering")
 	}
 
 	var filters []*ec2.Filter
@@ -83,17 +89,19 @@ func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 		Filters: filters,
 	}
 
-	// TODO: Add pagination
-	result, err := ec2Client.DescribeInstances(input)
+	var instances []*ec2.Instance
+	err = ec2Client.DescribeInstancesPages(input, func(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
+		for _, reservation := range page.Reservations {
+			instances = append(instances, reservation.Instances...)
+		}
+		return !lastPage
+	})
 	if err != nil {
+		logger.Error("Failed to describe instances", "error", err)
 		return nil, err
 	}
 
-	var instances []*ec2.Instance
-	for _, reservation := range result.Reservations {
-		instances = append(instances, reservation.Instances...)
-	}
-
+	logger.Debug(fmt.Sprintf("Found %d instances matching tags", len(instances)))
 	return instances, nil
 }
 
@@ -154,7 +162,7 @@ func SendSSHPublicKey(instanceID string, publicKey string) error {
 		strings.TrimSpace(publicKey), strings.TrimSpace(publicKey),
 	)
 
-	pterm.Info.Printfln("Sending command: \n%s", command)
+	logger.Debug("Sending command", "command", command)
 
 	_, err := ssm.New(config.App.Session).SendCommand(&ssm.SendCommandInput{
 		InstanceIds:  []*string{&instanceID},
