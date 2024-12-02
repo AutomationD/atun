@@ -1,4 +1,4 @@
-module github.com/hazelops/atun
+module github.com/automationd/atun
 
 go 1.22.2
 
