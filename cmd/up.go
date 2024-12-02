@@ -99,9 +99,9 @@ var upCmd = &cobra.Command{
 			//config.App.Config = atun.Config
 			//config.App.Hosts = atun.Hosts
 
-			for _, v := range config.App.Hosts {
+			for _, host := range config.App.Hosts {
 				// Review the hosts
-				logger.Debug("Host", "name", v.Name, "proto", v.Proto, "remote", v.Remote, "local", v.Local)
+				logger.Debug("Host", "name", host.Name, "proto", host.Proto, "remote", host.Remote, "local", host.Local)
 			}
 
 			// Generate SSH config file
