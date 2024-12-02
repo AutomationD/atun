@@ -18,9 +18,12 @@
 package cmd
 
 import (
-	"github.com/hazelops/atun/internal/aws"
-	"github.com/hazelops/atun/internal/config"
-	//"github.com/hazelops/atun/internal/config"
+	"github.com/automationd/atun/internal/aws"
+	"github.com/automationd/atun/internal/config"
+	"github.com/pterm/pterm"
+	"github.com/spf13/viper"
+
+	//"github.com/automationd/atun/internal/config"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -52,6 +55,25 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().String("log-level", "", "Specify log level (debug/info/warn/error)")
+	if err := viper.BindPFlag("LOG_LEVEL", rootCmd.PersistentFlags().Lookup("log-level")); err != nil {
+		pterm.Info.Println("Not binding log-level flag (none provied)")
+	}
+
+	rootCmd.PersistentFlags().String("aws-profile", "", "Specify AWS profile (defined in ~/.aws/credentials)")
+	if err := viper.BindPFlag("AWS_PROFILE", rootCmd.PersistentFlags().Lookup("aws-profile")); err != nil {
+		pterm.Info.Println("Not binding aws-profile flag (none provied)")
+	}
+
+	rootCmd.PersistentFlags().String("aws-region", "", "Specify AWS region (e.g. us-east-1)")
+	if err := viper.BindPFlag("AWS_REGION", rootCmd.PersistentFlags().Lookup("aws-region")); err != nil {
+		pterm.Info.Println("Not binding binding aws-region flag (none provided)")
+	}
+
+	rootCmd.PersistentFlags().String("env", "", "Specify environment (dev/prod/...)")
+	if err := viper.BindPFlag("ENV", rootCmd.PersistentFlags().Lookup("env")); err != nil {
+		pterm.Info.Println("Not binding binding env flag (none provided)")
+	}
 
 	// TODO: Use Method Receiver (pass atun all the way to the command)
 	rootCmd.AddCommand(
@@ -69,7 +91,7 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	//rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 }
 
@@ -79,6 +101,15 @@ func initializeAtun() {
 	if err != nil {
 		panic(err)
 	}
+
+	//// Ensure all constraints are met
+	//if err := constraints.CheckConstraints(
+	//	constraints.WithAWSProfile(),
+	//	constraints.WithAWSRegion(),
+	//); err != nil {
+	//	pterm.Error.Println("Failed to check constraints:", err)
+	//	os.Exit(1)
+	//}
 
 	// Init AWS Session (probably should be moved to a separate function)
 	sess, err := aws.GetSession(&aws.SessionConfig{

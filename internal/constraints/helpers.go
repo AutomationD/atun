@@ -19,8 +19,8 @@ package constraints
 
 import (
 	"fmt"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/go-ini/ini"
-	"github.com/hazelops/ize/pkg/term"
 	"github.com/pterm/pterm"
 	"io"
 	"log"
@@ -33,12 +33,18 @@ import (
 func CheckCommand(command string, subcommand []string) (bool, string) {
 	cmd := exec.Command(command, subcommand...)
 
-	out, _, _, err := term.New().Run(cmd)
-	if err != nil {
-		return false, out
-	}
+	// Capture combined stdout and stderr
+	out, err := cmd.CombinedOutput()
+	output := string(out)
 
-	return true, out
+	// Log the output at debug level
+	logger.Debug(output)
+
+	// Return success status and output
+	if err != nil {
+		return false, output
+	}
+	return true, output
 }
 
 const (

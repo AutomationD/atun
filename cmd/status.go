@@ -19,7 +19,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/hazelops/atun/internal/config"
+	"github.com/automationd/atun/internal/aws"
+	"github.com/automationd/atun/internal/config"
 
 	"github.com/pterm/pterm"
 	"os"
@@ -61,12 +62,14 @@ to quickly create a Cobra application.`,
 
 		pterm.DefaultSection.Println("Status")
 		_ = dt.WithData(pterm.TableData{
-			{"PWD", cwd},
-			{"SSH_KEY_PATH", config.App.Config.SSHKeyPath},
+			{"AWS_ACCOUNT", aws.GetAccountId()},
 			{"AWS_PROFILE", config.App.Config.AWSProfile},
 			{"AWS_REGION", config.App.Config.AWSRegion},
+			{"PWD", cwd},
+			{"SSH_KEY_PATH", config.App.Config.SSHKeyPath},
 			{"Config File", config.App.Config.ConfigFile},
-			{"Bastion Host", config.App.Config.ConfigFile},
+			{"Bastion Host", config.App.Config.BastionHostID},
+
 			//{"Toggle", toggleValue},
 		}).WithLeftAlignment().Render()
 

@@ -75,7 +75,7 @@ func GetSession(c *SessionConfig) (*session.Session, error) {
 		switch aerr.Code() {
 		case "SharedCredsLoad":
 			logrus.Error(err)
-			return nil, fmt.Errorf("AWS_PROFILE is not set. Please set it via AWS_PROFILE env var, --aws-profile flag or aws_profile config entry in ize.toml")
+			return nil, fmt.Errorf("AWS profile is not valid (used `%s`). Please set correct AWS_PROFILE via AWS_PROFILE env var, --aws-profile flag or aws_profile config entry in atun.toml", c.Profile)
 		default:
 			// Error only if it's not a localhost endpoint
 			if !(strings.Contains(c.EndpointUrl, "localhost") || strings.Contains(c.EndpointUrl, "127.0.0.1")) {

@@ -20,17 +20,18 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/automationd/atun/internal/aws"
+	"github.com/automationd/atun/internal/config"
+	"github.com/automationd/atun/internal/infra"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/hazelops/atun/internal/aws"
-	"github.com/hazelops/atun/internal/config"
-	"github.com/hazelops/atun/internal/infra"
 	"github.com/hazelops/ize/pkg/term"
 	"os/exec"
 	"path"
 
-	//"github.com/hazelops/atun/internal/aws"
-	"github.com/hazelops/atun/internal/constraints"
-	//"github.com/hazelops/atun/internal/infra"
+	//"github.com/automationd/atun/internal/aws"
+	"github.com/automationd/atun/internal/constraints"
+	//"github.com/automationd/atun/internal/infra"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -56,28 +57,38 @@ to quickly create a Cobra application.`,
 
 		// Check if an 'up' command is being invoked (not a subcommand)
 		if len(args) == 0 {
-			pterm.Info.Printfln("Up command called. bastion: %s, aws profile: %s", config.App.Config.BastionHostID, config.App.Config.AWSProfile)
 
 			var err error
 			var bastionHost string
+			logger.Debug("Up command called", "bastion", bastionHost, "aws profile", config.App.Config.AWSProfile, "env", config.App.Config.Env)
 
-			if err := constraints.CheckConstraints(constraints.WithSSMPlugin()); err != nil {
+			if err := constraints.CheckConstraints(
+				constraints.WithSSMPlugin(),
+				constraints.WithAWSProfile(),
+				constraints.WithAWSRegion(),
+				constraints.WithENV(),
+			); err != nil {
 				return err
 			}
 
+			logger.Debug("All constraints satisfied")
+
+			// Get the bastion host ID from the command line
 			bastionHost = cmd.Flag("bastion").Value.String()
 
-			// TODO?: Add logic if host not found offer create it, add --auto-create-bastion
+			// TODO: Add logic if host not found offer create it, add --auto-create-bastion
+
+			// If bastion host is not provided, get the first running instance based on the discovery tag (atun.io/version)
 			if bastionHost == "" {
 				config.App.Config.BastionHostID, err = getBastionHostID()
 				if err != nil {
-					pterm.Error.Printfln("Error getting bastion host: %v", err)
+					logger.Fatal("Error discovering bastion host", "error", err)
 				}
 			} else {
 				config.App.Config.BastionHostID = bastionHost
 			}
 
-			pterm.Printfln("Using atun bastion host: %s", config.App.Config.BastionHostID)
+			logger.Debug("Bastion host ID", "bastion", config.App.Config.BastionHostID)
 
 			// TODO: refactor as a better functional
 			// Read atun:config from the instance as `config`
@@ -144,6 +155,7 @@ to quickly create a Cobra application.`,
 			pterm.Println(forwardConfig)
 
 		} else {
+			// TODO: Possibly refactor to use a separate command like install? atun add bastion / atun del|remove bastion?
 			if args[0] == "bastion" {
 				err := infra.ApplyCDKTF(config.App.Config)
 				if err != nil {
@@ -203,21 +215,26 @@ func getSSHCommandArgs(app *config.Atun) []string {
 	return args
 }
 
-// Gets bastion host ID
+// GetBastionHostID retrieves the Bastion Host ID from AWS tags.
+// It takes a session, tag name, and tag value as parameters and returns the instance ID of the Bastion Host.
 func getBastionHostID() (string, error) {
-	pterm.Info.Println("Bastion host is required.462567" +
-		"462567" +
-		"462567 Looking fo atun routers.")
-	tagKey := "atun.io/version"
-	tagValue := "*"
+	logger.Debug("Getting bastion host ID. Looking for atun routers.")
 
-	instances, err := aws.ListInstancesWithTag(tagKey, tagValue)
+	// Build a map of tags to filter instances
+	tags := map[string]string{
+		"atun.io/version": config.App.Version,
+		"atun.io/env":     config.App.Config.Env,
+	}
+
+	instances, err := aws.ListInstancesWithTags(tags)
 	if err != nil {
-		pterm.Error.Printfln("Error listing instances with tag %s=%s: %v", tagKey, tagValue, err)
+		logger.Error("Error listing instances with tags", "atun.io/version", config.App.Version, "atun.io/env", config.App.Config.Env)
+		return "", err
 	}
 
 	if len(instances) == 0 {
-		pterm.Error.Printfln("No instances found with tag %s=%s", tagKey, tagValue)
+		logger.Fatal("No instances found with required tags", "atun.io/version", config.App.Version, "atun.io/env", config.App.Config.Env)
+		pterm.Info.Printfln("No instances found with tags atun.io/version: %s and atun.io/env: %s. Please create one first.", config.App.Version, config.App.Config.Env)
 		return "", err
 	}
 
@@ -353,7 +370,7 @@ func upTunnel(app *config.Atun) (string, error) {
 	pterm.Info.Printfln("Ssh config path: %s", app.Config.SSHConfigFile)
 
 	if err := setAWSCredentials(app.Session); err != nil {
-		return "", fmt.Errorf("can't run tunnel: %w", err)
+		return "", fmt.Errorf("can't up tunnel: %w", err)
 	}
 
 	//
@@ -417,8 +434,8 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	upCmd.PersistentFlags().String("bastion-vpc-id", "", "A help for foo")
-	upCmd.PersistentFlags().String("bastion-subnet-id", "", "A help for foo")
+	upCmd.PersistentFlags().String("bastion-vpc-id", "", "VPC ID of the bastion host to be created")
+	upCmd.PersistentFlags().String("bastion-subnet-id", "", "Subnet ID of the bastion host to be created")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

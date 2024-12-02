@@ -20,12 +20,12 @@ package infra
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/automationd/atun/internal/config"
 	"github.com/aws/jsii-runtime-go"
 	awsprovider "github.com/cdktf/cdktf-provider-aws-go/aws/v19/provider"
 	"github.com/hashicorp/terraform-cdk-go/cdktf"
-	"github.com/hazelops/atun/internal/config"
 
-	//"github.com/hazelops/atun/internal/config"
+	//"github.com/automationd/atun/internal/config"
 	"github.com/pterm/pterm"
 	"os"
 	"os/exec"

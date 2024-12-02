@@ -20,7 +20,7 @@ package cmd
 import (
 	"github.com/pterm/pterm"
 
-	"github.com/hazelops/atun/internal/version"
+	"github.com/automationd/atun/internal/version"
 	"github.com/spf13/cobra"
 )
 

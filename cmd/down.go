@@ -18,9 +18,9 @@
 package cmd
 
 import (
-	"github.com/hazelops/atun/internal/config"
-	"github.com/hazelops/atun/internal/infra"
-	//"github.com/hazelops/atun/internal/infra"
+	"github.com/automationd/atun/internal/config"
+	"github.com/automationd/atun/internal/infra"
+	//"github.com/automationd/atun/internal/infra"
 	"github.com/pterm/pterm"
 
 	"github.com/spf13/cobra"

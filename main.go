@@ -16,7 +16,7 @@
  */
 package main
 
-import "github.com/hazelops/atun/cmd"
+import "github.com/automationd/atun/cmd"
 
 func main() {
 	cmd.Execute()

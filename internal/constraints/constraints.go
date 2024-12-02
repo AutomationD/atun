@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Masterminds/semver"
-	"github.com/hazelops/atun/internal/config"
+	"github.com/automationd/atun/internal/config"
 
 	"github.com/pterm/pterm"
 	"github.com/sirupsen/logrus"
@@ -36,8 +36,12 @@ type constraints struct {
 	ssmplugin  bool
 	structure  bool
 	nvm        bool
+	awsProfile bool
+	awsRegion  bool
+	env        bool
 }
 
+// CheckConstraints checks if the constraints are met
 func CheckConstraints(options ...Option) error {
 	r := constraints{}
 	for _, opt := range options {
@@ -46,6 +50,24 @@ func CheckConstraints(options ...Option) error {
 
 	if r.ssmplugin {
 		if err := checkSessionManagerPlugin(); err != nil {
+			return err
+		}
+	}
+
+	if r.awsProfile {
+		if err := validateAwsProfile(config.App.Config); err != nil {
+			return err
+		}
+	}
+
+	if r.awsRegion {
+		if err := validateAwsRegion(config.App.Config); err != nil {
+			return err
+		}
+	}
+
+	if r.env {
+		if err := validateEnv(config.App.Config); err != nil {
 			return err
 		}
 	}
@@ -59,7 +81,7 @@ func CheckConstraints(options ...Option) error {
 
 type Option func(*constraints)
 
-func WithIzeStructure() Option {
+func WithAtunStructure() Option {
 	return func(r *constraints) {
 		r.structure = true
 	}
@@ -88,6 +110,48 @@ func checkNVM() error {
 		return errors.New("nvm is not installed (visit https://github.com/nvm-sh/nvm)")
 	}
 
+	return nil
+}
+
+func WithAWSProfile() Option {
+	return func(r *constraints) {
+		r.awsProfile = true
+	}
+}
+
+func WithAWSRegion() Option {
+	return func(r *constraints) {
+		r.awsRegion = true
+	}
+}
+
+func WithENV() Option {
+	return func(r *constraints) {
+		r.env = true
+	}
+}
+
+// ValidateAwsProfile checks if AWS_PROFILE is set in the config
+func validateAwsProfile(cfg *config.Config) error {
+	if cfg.AWSProfile == "" {
+		return errors.New("AWS_PROFILE is not set. Please set it via command line or environment variable.")
+	}
+	return nil
+}
+
+// ValidateAwsRegion checks if AWS_REGION is set in the config
+func validateAwsRegion(cfg *config.Config) error {
+	if cfg.AWSRegion == "" {
+		return errors.New("AWS_REGION is not set. Please set it via command line or environment variable.")
+	}
+	return nil
+}
+
+// ValidateEnv checks if ENV is set in the config
+func validateEnv(cfg *config.Config) error {
+	if cfg.Env == "" {
+		return errors.New("ENV is not set. Please set it via command line or environment variable.")
+	}
 	return nil
 }
 

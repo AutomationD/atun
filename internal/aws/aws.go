@@ -19,11 +19,13 @@ package aws
 
 import (
 	"fmt"
+	"github.com/automationd/atun/internal/config"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/hazelops/atun/internal/config"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pterm/pterm"
 	"strings"
 )
@@ -40,23 +42,45 @@ func NewEC2Client() (*ec2.EC2, error) {
 	}
 
 	ec2Client := ec2.New(sess)
-	pterm.Info.Printf("Created EC2 client with profile %s and region %s\n", config.App.Config.AWSProfile, config.App.Config.AWSRegion)
+
+	logger.Debug("Created EC2 client with profile %s and region %s", config.App.Config.AWSProfile, config.App.Config.AWSRegion)
 	return ec2Client, nil
 }
 
-func ListInstancesWithTag(tagKey, tagValue string) ([]*ec2.Instance, error) {
+func NewSTSClient() (*sts.STS, error) {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Region: aws.String(config.App.Config.AWSRegion),
+		},
+		Profile: config.App.Config.AWSProfile,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	stsClient := sts.New(sess)
+
+	logger.Debug("Created STS client with profile %s and region %s", config.App.Config.AWSProfile, config.App.Config.AWSRegion)
+	return stsClient, nil
+}
+
+// ListInstancesWithTag returns a list of EC2 instances with a specific tag
+func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 	ec2Client, err := NewEC2Client()
 	if err != nil {
 		return nil, err
 	}
 
+	var filters []*ec2.Filter
+	for key, value := range tags {
+		filters = append(filters, &ec2.Filter{
+			Name:   aws.String(fmt.Sprintf("tag:%s", key)),
+			Values: []*string{aws.String(value)},
+		})
+	}
+
 	input := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String(fmt.Sprintf("tag:%s", tagKey)),
-				Values: []*string{aws.String(tagValue)},
-			},
-		},
+		Filters: filters,
 	}
 
 	// TODO: Add pagination
@@ -105,6 +129,22 @@ func GetInstanceTags(instanceID string) (map[string]string, error) {
 	}
 
 	return tags, nil
+}
+
+func GetAccountId() string {
+	stsClient, err := NewSTSClient()
+	if err != nil {
+		pterm.Error.Println("Error creating STS client:", err)
+		return ""
+	}
+
+	result, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		pterm.Error.Println("Error getting caller identity:", err)
+		return ""
+	}
+
+	return *result.Account
 }
 
 func SendSSHPublicKey(instanceID string, publicKey string) error {
