@@ -8,6 +8,7 @@ configuration.
 ## WIP
 
 This tool is still in development and versions before 1.0.0 might have breaking changes.
+Be ready that commits might be squashed/reset and tags might be rewritten until 1.0.0
 
 ## Quickstart
 

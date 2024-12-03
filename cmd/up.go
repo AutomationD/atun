@@ -1,18 +1,6 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  * SPDX-FileCopyrightText: © 2024 Dmitry Kireev
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package cmd
@@ -25,9 +13,9 @@ import (
 	"github.com/automationd/atun/internal/infra"
 	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/hazelops/ize/pkg/term"
 	"os/exec"
 	"path"
+	"syscall"
 
 	//"github.com/automationd/atun/internal/aws"
 	"github.com/automationd/atun/internal/constraints"
@@ -119,7 +107,7 @@ var upCmd = &cobra.Command{
 			// TODO: Check & Install SSM Agent
 
 			//logrus.Debugf("public key path: %s", publicKeyPath)
-			logger.Debug("private key path", "path", config.App.Config.SSHKeyPath)
+			logger.Debug("Private key path", "path", config.App.Config.SSHKeyPath)
 
 			//err := o.checkOsVersion()
 			//if err != nil {
@@ -132,7 +120,7 @@ var upCmd = &cobra.Command{
 				logger.Error("Error getting public key", "error", err)
 			}
 
-			logger.Debug("public key", "key", publicKey)
+			logger.Debug("Public key", "key", publicKey)
 
 			// Send the public key to the bastion instance
 			err = aws.SendSSHPublicKey(config.App.Config.BastionHostID, publicKey)
@@ -142,15 +130,15 @@ var upCmd = &cobra.Command{
 
 			logger.Debug("Public key sent to bastion host", "bastion", config.App.Config.BastionHostID)
 
-			// TODO: Refactor naming of forwardConfig
-			forwardConfig, err := upTunnel(config.App)
+			// TODO: Refactor naming of connectionInfo
+			connectionInfo, err := upTunnel(config.App)
 			if err != nil {
 				logger.Fatal("Error running tunnel", "error", err)
 			}
 
 			// TODO: Check if Instance has forwarding working (check ipv4.forwarding sysctl)
 
-			logger.Info("Tunnel is up! Forwarded ports:", "forwardConfig", forwardConfig)
+			logger.Info("Tunnel is up! Forwarded ports:", "connectionInfo", connectionInfo)
 
 		} else {
 			// TODO: Possibly refactor to use a separate command like install? atun add bastion / atun del|remove bastion?
@@ -170,40 +158,59 @@ var upCmd = &cobra.Command{
 }
 
 func runSSH(app *config.Atun, args []string) error {
-
+	logger.Debug("SSH", "args", args)
 	c := exec.Command("ssh", args...)
+	logger.Debug("SSH command", "command", c.String())
 
 	c.Dir = app.Config.AppDir
 	os.Setenv("AWS_REGION", app.Config.AWSRegion)
 	os.Setenv("AWS_PROFILE", app.Config.AWSProfile)
 
-	logger.Debug("Command Executed", "command", c.String())
-
-	runner := term.New(term.WithStdin(os.Stdin))
-	_, _, code, err := runner.Run(c)
-	if err != nil {
-		return err
+	// Detach the process (platform-dependent)
+	c.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true, // Detach process from the parent group
 	}
 
-	if code != 0 {
-		return fmt.Errorf("exit status: %d", code)
+	// Start the process
+	if err := c.Start(); err != nil {
+		return fmt.Errorf("failed to start SSH process: %w", err)
 	}
+
+	logger.Info("SSH process started in the background", "pid", c.Process.Pid)
+
+	// Optionally disown the process if the parent process is terminating
+	// This ensures the child process doesn't get terminated when the parent exits
+	go func() {
+		_ = c.Process.Release() // Detach the process fully
+	}()
+
 	return nil
 }
 
 func getSSHCommandArgs(app *config.Atun) []string {
-	bastionSockFilePath := path.Join(app.Config.AppDir, "bastion.sock")
-	args := []string{"-M", "-t", "-S", bastionSockFilePath, "-fN"}
-	if !app.Config.SSHStrictHostKeyChecking {
-		args = append(args, "-o", "StrictHostKeyChecking=no")
-	}
+	bastionSockFilePath := path.Join(app.Config.AppDir, fmt.Sprintf("%s-%s-tunnel.sock", app.Config.Env, app.Config.BastionHostID))
 
-	// TODO: Add ability to support other instance types, not just ubuntu
-	args = append(args, fmt.Sprintf("ubuntu@%s", app.Config.BastionHostID))
-	args = append(args, "-F", app.Config.SSHConfigFile)
+	args := []string{}
 
-	if _, err := os.Stat(app.Config.SSHKeyPath); !os.IsNotExist(err) {
-		args = append(args, "-i", app.Config.SSHKeyPath)
+	// Check if the bastion socket file exists
+	if _, err := os.Stat(bastionSockFilePath); !os.IsNotExist(err) {
+		logger.Info("A tunnel socket from has been found", "path", bastionSockFilePath)
+		args = []string{"ssh", "-S", bastionSockFilePath, "-O", "check", ""}
+
+	} else {
+		logger.Debug("Tunnel socket not found. Creating a new one", "path", bastionSockFilePath)
+		args = []string{"-M", "-t", "-S", bastionSockFilePath, "-fN"}
+		if !app.Config.SSHStrictHostKeyChecking {
+			args = append(args, "-o", "StrictHostKeyChecking=no")
+		}
+
+		// TODO: Add ability to support other instance types, not just ubuntu
+		args = append(args, fmt.Sprintf("ubuntu@%s", app.Config.BastionHostID))
+		args = append(args, "-F", app.Config.SSHConfigFile)
+
+		if _, err := os.Stat(app.Config.SSHKeyPath); !os.IsNotExist(err) {
+			args = append(args, "-i", app.Config.SSHKeyPath)
+		}
 	}
 
 	if app.Config.LogLevel == "debug" {
@@ -388,14 +395,14 @@ func upTunnel(app *config.Atun) (string, error) {
 		return "", err
 	}
 
-	var forwardConfig string
+	var connectionInfo string
 
 	for _, v := range config.App.Hosts {
 		logger.Debug("Host", "name", v.Name, "proto", v.Proto, "remote", v.Remote, "local", v.Local)
-		forwardConfig += fmt.Sprintf("%s:%d ➡ 127.0.0.1:%d\n", v.Name, v.Remote, v.Local)
+		connectionInfo += fmt.Sprintf("%s:%d ➡ 127.0.0.1:%d\n", v.Name, v.Remote, v.Local)
 	}
 
-	return forwardConfig, nil
+	return connectionInfo, nil
 }
 
 func generateSSHConfigFile(app *config.Atun) (string, error) {
@@ -426,6 +433,52 @@ ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartS
 
 	return sshConfigFile.Name(), nil
 }
+
+//func checkTunnel(app *config.Atun) (bool, error) {
+//	bastionSocketPath := path.Join(app.Config.AppDir, "bastion.sock")
+//
+//	// Check if the socket file exists. If it does, check if the tunnel is up
+//	if _, err := os.Stat(bastionSocketPath); !os.IsNotExist(err) {
+//		logger.Info("A socket file from another tunnel has been found", "path", bastionSocketPath)
+//		c := exec.Command(
+//			logger.Debug("Checking tunnel in socket", "socket", bastionSocketPath)
+//			"ssh", "-S", bastionSocketPath, "-O", "check", "",
+//		)
+//
+//		out := &bytes.Buffer{}
+//		c.Stdout = out
+//		c.Stderr = out
+//		c.Dir = dir
+//
+//		err := c.Run()
+//		if err == nil {
+//			sshConfigPath := fmt.Sprintf("%s/ssh.config", dir)
+//			sshConfig, err := getSSHConfig(sshConfigPath)
+//			if err != nil {
+//				return false, fmt.Errorf("can't check tunnel: %w", err)
+//			}
+//
+//			pterm.Success.Println("Tunnel is up. Forwarding config:")
+//			hosts := getHosts(sshConfig)
+//			var forwardConfig string
+//			for _, h := range hosts {
+//				forwardConfig += fmt.Sprintf("%s:%s ➡ localhost:%s\n", h[2], h[3], h[1])
+//			}
+//			pterm.Println(forwardConfig)
+//
+//			return true, nil
+//		} else {
+//			pterm.Warning.Println("Tunnel socket file seems to be not useable. We have deleted it")
+//			err := os.Remove(bastionSocketPath)
+//			if err != nil {
+//				return false, err
+//			}
+//			return false, nil
+//		}
+//	}
+//
+//	return false, nil
+//}
 
 // TODO: Implement getFreePort - ability to use a random local if port is set to "auto" or "0"
 
