@@ -21,24 +21,31 @@ type Atun struct {
 	Version string `json:"atun.io/version"`
 	Config  *Config
 	Session *session.Session
-	Hosts   []Host
 }
 
 type Config struct {
+	Hosts                    []Host
 	SSHKeyPath               string
 	SSHConfigFile            string
 	SSHStrictHostKeyChecking bool
 	AWSProfile               string
 	AWSRegion                string
+	AWSKeyPair               string
+	AWSInstanceType          string
 	EndpointUrl              string
 	ConfigFile               string
 	BastionVPCID             string
 	BastionSubnetID          string
 	BastionHostID            string
+	BastionInstanceName      string
 	AppDir                   string
+	TunnelDir                string
 	LogLevel                 string
 	Env                      string
 }
+
+// TODO: Add ability to add multiple ports for forwarding for one host
+//  (maybe <host>: [{"local":0, "remote":22, "proto": "ssm"}, {"local":0, "remote":443, "proto": "ssm"}])
 
 type Host struct {
 	Name   string `jsonschema:"-"`
@@ -126,35 +133,40 @@ func LoadConfig() error {
 	// Set Default Values if none are set
 	viper.SetDefault("SSH_KEY_PATH", filepath.Join(homeDir, ".ssh", "id_rsa"))
 	viper.SetDefault("SSH_STRICT_HOST_KEY_CHECKING", true)
-
-	if err := viper.Unmarshal(&InitialApp); err != nil {
-		log.Fatalf("Unable to decode initial config into a struct: %v", err)
-	}
+	viper.SetDefault("AWS_INSTANCE_TYPE", "t3.nano")
+	viper.SetDefault("BASTION_INSTANCE_NAME", "atun-bastion")
 
 	// TODO?: Move init a separate file with correct imports of config
 	App = &Atun{
 		Version: "1",
 		Config: &Config{
+			Hosts:                    []Host{},
 			Env:                      viper.GetString("ENV"),
 			SSHKeyPath:               viper.GetString("SSH_KEY_PATH"),
 			SSHStrictHostKeyChecking: viper.GetBool("SSH_STRICT_HOST_KEY_CHECKING"),
 			AWSProfile:               viper.GetString("AWS_PROFILE"),
 			AWSRegion:                viper.GetString("AWS_REGION"),
+			AWSKeyPair:               viper.GetString("AWS_KEY_PAIR"),
+			AWSInstanceType:          viper.GetString("AWS_INSTANCE_TYPE"),
 			BastionVPCID:             viper.GetString("BASTION_VPC_ID"),
 			BastionSubnetID:          viper.GetString("BASTION_SUBNET_ID"),
 			BastionHostID:            viper.GetString("BASTION_HOST_ID"),
+			BastionInstanceName:      viper.GetString("BASTION_INSTANCE_NAME"),
 			ConfigFile:               viper.ConfigFileUsed(),
 			AppDir:                   appDir,
 			LogLevel:                 viper.GetString("LOG_LEVEL"),
 		},
 		Session: nil,
-		Hosts:   []Host{},
+	}
+
+	if err := viper.Unmarshal(&App.Config); err != nil {
+		log.Fatalf("Unable to decode initial config into a struct: %v", err)
 	}
 
 	// Create Cfg.AppDir if it doesn't exist
 	if _, err := os.Stat(App.Config.AppDir); os.IsNotExist(err) {
 		if err := os.Mkdir(App.Config.AppDir, os.FileMode(0755)); err != nil {
-			pterm.Error.Printfln("Error creating app directory %s: %s", App.Config.AppDir, err)
+			logger.Fatal("Error creating app directory", "appDir", App.Config.AppDir, "error", err)
 			panic(err)
 		}
 		pterm.Info.Println("Created app directory:", App.Config.AppDir)

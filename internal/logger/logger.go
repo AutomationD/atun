@@ -68,3 +68,8 @@ func Fatal(msg string, keysAndValues ...interface{}) {
 	defaultLogger.Error(msg, keysAndValues...)
 	os.Exit(1)
 }
+
+func init() {
+	// Initialize the logger with the default log level
+	Initialize("debug")
+}

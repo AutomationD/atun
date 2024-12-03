@@ -166,3 +166,26 @@ func SendSSHPublicKey(instanceID string, publicKey string) error {
 
 	return nil
 }
+
+// GetVPCIDFromSubnet returns the VPC ID for a given subnet ID
+func GetVPCIDFromSubnet(subnetID string) (string, error) {
+	ec2Client, err := NewEC2Client()
+	if err != nil {
+		return "", err
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		SubnetIds: []*string{aws.String(subnetID)},
+	}
+
+	result, err := ec2Client.DescribeSubnets(input)
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Subnets) == 0 {
+		return "", fmt.Errorf("no subnets found for ID %s", subnetID)
+	}
+
+	return *result.Subnets[0].VpcId, nil
+}

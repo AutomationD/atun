@@ -10,19 +10,15 @@ import (
 	"fmt"
 	"github.com/automationd/atun/internal/aws"
 	"github.com/automationd/atun/internal/config"
-	"github.com/automationd/atun/internal/infra"
+	"github.com/automationd/atun/internal/constraints"
 	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"os/exec"
 	"path"
 	"syscall"
 
-	//"github.com/automationd/atun/internal/aws"
-	"github.com/automationd/atun/internal/constraints"
-	//"github.com/automationd/atun/internal/infra"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
 	"os"
 	"path/filepath"
@@ -39,119 +35,102 @@ var upCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// TODO: Use GO Method received on `atun`
 		// TODO: Implement VPC, subnet picker (1. get list of VPCs, 2. Get a list of Subnets in it, 3. Ask user if it's not provided)
+		var err error
+		var bastionHost string
+		logger.Debug("Up command called", "bastion", bastionHost, "aws profile", config.App.Config.AWSProfile, "env", config.App.Config.Env)
 
-		// Check if an 'up' command is being invoked (not a subcommand)
-		if len(args) == 0 {
-
-			var err error
-			var bastionHost string
-			logger.Debug("Up command called", "bastion", bastionHost, "aws profile", config.App.Config.AWSProfile, "env", config.App.Config.Env)
-
-			if err := constraints.CheckConstraints(
-				constraints.WithSSMPlugin(),
-				constraints.WithAWSProfile(),
-				constraints.WithAWSRegion(),
-				constraints.WithENV(),
-			); err != nil {
-				return err
-			}
-
-			logger.Debug("All constraints satisfied")
-
-			// Get the bastion host ID from the command line
-			bastionHost = cmd.Flag("bastion").Value.String()
-
-			// TODO: Add logic if host not found offer create it, add --auto-create-bastion
-
-			// If bastion host is not provided, get the first running instance based on the discovery tag (atun.io/version)
-			if bastionHost == "" {
-				config.App.Config.BastionHostID, err = getBastionHostID()
-				if err != nil {
-					logger.Fatal("Error discovering bastion host", "error", err)
-				}
-			} else {
-				config.App.Config.BastionHostID = bastionHost
-			}
-
-			logger.Debug("Bastion host ID", "bastion", config.App.Config.BastionHostID)
-
-			// TODO: refactor as a better functional
-			// Read atun:config from the instance as `config`
-			bastionHostConfig, err := getBastionHostConfig(config.App.Config.BastionHostID)
-			config.App.Version = bastionHostConfig.Version
-			config.App.Hosts = bastionHostConfig.Hosts
-
-			if err != nil {
-				pterm.Error.Printfln("Error getting bastion host config: %v", err)
-			}
-			//config.App.Config = atun.Config
-			//config.App.Hosts = atun.Hosts
-
-			for _, host := range config.App.Hosts {
-				// Review the hosts
-				logger.Debug("Host", "name", host.Name, "proto", host.Proto, "remote", host.Remote, "local", host.Local)
-			}
-
-			// Generate SSH config file
-			config.App.Config.SSHConfigFile, err = generateSSHConfigFile(config.App)
-			//atun.Config.SSHConfigFile, err = generateSSHConfigFile(atun)
-			if err != nil {
-				logger.Error("Error generating SSH config file", "SSHConfigFile", config.App.Config.SSHConfigFile, "err", err)
-			}
-			//if err != nil {
-			//	pterm.Error.Printfln("Error writing SSH config to %s: %v", atun.Config.SSHConfigFile, err)
-			//}
-
-			logger.Debug("Saved SSH config file", "path", config.App.Config.SSHConfigFile)
-
-			// TODO: Check & Install SSM Agent
-
-			//logrus.Debugf("public key path: %s", publicKeyPath)
-			logger.Debug("Private key path", "path", config.App.Config.SSHKeyPath)
-
-			//err := o.checkOsVersion()
-			//if err != nil {
-			//	return err
-			//}
-
-			// Read private key from HOME/id_rsa.pub
-			publicKey, err := getPublicKey(config.App.Config.SSHKeyPath)
-			if err != nil {
-				logger.Error("Error getting public key", "error", err)
-			}
-
-			logger.Debug("Public key", "key", publicKey)
-
-			// Send the public key to the bastion instance
-			err = aws.SendSSHPublicKey(config.App.Config.BastionHostID, publicKey)
-			if err != nil {
-				logger.Error("Can't run tunnel", "error", err)
-			}
-
-			logger.Debug("Public key sent to bastion host", "bastion", config.App.Config.BastionHostID)
-
-			// TODO: Refactor naming of connectionInfo
-			connectionInfo, err := upTunnel(config.App)
-			if err != nil {
-				logger.Fatal("Error running tunnel", "error", err)
-			}
-
-			// TODO: Check if Instance has forwarding working (check ipv4.forwarding sysctl)
-
-			logger.Info("Tunnel is up! Forwarded ports:", "connectionInfo", connectionInfo)
-
-		} else {
-			// TODO: Possibly refactor to use a separate command like install? atun add bastion / atun del|remove bastion?
-			if args[0] == "bastion" {
-				err := infra.ApplyCDKTF(config.App.Config)
-				if err != nil {
-					pterm.Info.Printf("Error running CDKTF: %v\n", err)
-					return err
-				}
-				pterm.Info.Println("CDKTF stack applied successfully")
-			}
-
+		if err := constraints.CheckConstraints(
+			constraints.WithSSMPlugin(),
+			constraints.WithAWSProfile(),
+			constraints.WithAWSRegion(),
+			constraints.WithENV(),
+		); err != nil {
+			return err
 		}
+
+		logger.Debug("All constraints satisfied")
+
+		// Get the bastion host ID from the command line
+		bastionHost = cmd.Flag("bastion").Value.String()
+
+		// TODO: Add logic if host not found offer create it, add --auto-create-bastion
+
+		// If bastion host is not provided, get the first running instance based on the discovery tag (atun.io/version)
+		if bastionHost == "" {
+			config.App.Config.BastionHostID, err = getBastionHostID()
+			if err != nil {
+				logger.Fatal("Error discovering bastion host", "error", err)
+			}
+		} else {
+			config.App.Config.BastionHostID = bastionHost
+		}
+
+		logger.Debug("Bastion host ID", "bastion", config.App.Config.BastionHostID)
+
+		// TODO: refactor as a better functional
+		// Read atun:config from the instance as `config`
+		bastionHostConfig, err := getBastionHostConfig(config.App.Config.BastionHostID)
+		config.App.Version = bastionHostConfig.Version
+		config.App.Config.Hosts = bastionHostConfig.Config.Hosts
+
+		if err != nil {
+			pterm.Error.Printfln("Error getting bastion host config: %v", err)
+		}
+		//config.App.Config = atun.Config
+		//config.App.Hosts = atun.Hosts
+
+		for _, host := range config.App.Config.Hosts {
+			// Review the hosts
+			logger.Debug("Host", "name", host.Name, "proto", host.Proto, "remote", host.Remote, "local", host.Local)
+		}
+
+		// Generate SSH config file
+		config.App.Config.SSHConfigFile, err = generateSSHConfigFile(config.App)
+		//atun.Config.SSHConfigFile, err = generateSSHConfigFile(atun)
+		if err != nil {
+			logger.Error("Error generating SSH config file", "SSHConfigFile", config.App.Config.SSHConfigFile, "err", err)
+		}
+		//if err != nil {
+		//	pterm.Error.Printfln("Error writing SSH config to %s: %v", atun.Config.SSHConfigFile, err)
+		//}
+
+		logger.Debug("Saved SSH config file", "path", config.App.Config.SSHConfigFile)
+
+		// TODO: Check & Install SSM Agent
+
+		//logrus.Debugf("public key path: %s", publicKeyPath)
+		logger.Debug("Private key path", "path", config.App.Config.SSHKeyPath)
+
+		//err := o.checkOsVersion()
+		//if err != nil {
+		//	return err
+		//}
+
+		// Read private key from HOME/id_rsa.pub
+		publicKey, err := getPublicKey(config.App.Config.SSHKeyPath)
+		if err != nil {
+			logger.Error("Error getting public key", "error", err)
+		}
+
+		logger.Debug("Public key", "key", publicKey)
+
+		// Send the public key to the bastion instance
+		err = aws.SendSSHPublicKey(config.App.Config.BastionHostID, publicKey)
+		if err != nil {
+			logger.Error("Can't run tunnel", "error", err)
+		}
+
+		logger.Debug("Public key sent to bastion host", "bastion", config.App.Config.BastionHostID)
+
+		// TODO: Refactor naming of connectionInfo
+		connectionInfo, err := upTunnel(config.App)
+		if err != nil {
+			logger.Fatal("Error running tunnel", "error", err)
+		}
+
+		// TODO: Check if Instance has forwarding working (check ipv4.forwarding sysctl)
+
+		logger.Info("Tunnel is up! Forwarded ports:", "connectionInfo", connectionInfo)
 
 		return nil
 	},
@@ -330,7 +309,7 @@ func getBastionHostConfig(bastionHostID string) (config.Atun, error) {
 				// Assign the hostName to each Host and append to atun.Hosts
 				for i := range hosts {
 					hosts[i].Name = hostName
-					atun.Hosts = append(atun.Hosts, hosts[i])
+					atun.Config.Hosts = append(atun.Config.Hosts, hosts[i])
 				}
 			}
 		}
@@ -397,7 +376,7 @@ func upTunnel(app *config.Atun) (string, error) {
 
 	var connectionInfo string
 
-	for _, v := range config.App.Hosts {
+	for _, v := range config.App.Config.Hosts {
 		logger.Debug("Host", "name", v.Name, "proto", v.Proto, "remote", v.Remote, "local", v.Local)
 		connectionInfo += fmt.Sprintf("%s:%d ➡ 127.0.0.1:%d\n", v.Name, v.Remote, v.Local)
 	}
@@ -412,7 +391,7 @@ ServerAliveInterval 180
 ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 `
 
-	for _, host := range app.Hosts {
+	for _, host := range app.Config.Hosts {
 		logger.Debug("Host", "name", host.Name, "proto", host.Proto, "remote", host.Remote, "local", host.Local)
 		sshConfigContent += fmt.Sprintf("LocalForward %d %s:%d\n", host.Local, host.Name, host.Remote)
 	}
@@ -433,6 +412,90 @@ ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartS
 
 	return sshConfigFile.Name(), nil
 }
+
+// TODO: Automatic port logic
+
+//func getFreePort() (int, error) {
+//	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	l, err := net.ListenTCP("tcp", addr)
+//	if err != nil {
+//		return 0, err
+//	}
+//	defer func(l *net.TCPListener) {
+//		err := l.Close()
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//	}(l)
+//	return l.Addr().(*net.TCPAddr).Port, nil
+//}
+//
+//func checkPort(port int, dir string) error {
+//	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+//	if err != nil {
+//		return fmt.Errorf("can't check address %s: %w", fmt.Sprintf("127.0.0.1:%d", port), err)
+//	}
+//
+//	l, err := net.ListenTCP("tcp", addr)
+//	if err != nil {
+//		command := fmt.Sprintf("lsof -i tcp:%d | grep LISTEN | awk '{print $1, $2}'", port)
+//		stdout, stderr, code, err := term.New(term.WithStdout(io.Discard), term.WithStderr(io.Discard)).Run(exec.Command("bash", "-c", command))
+//		if err != nil {
+//			return fmt.Errorf("can't run command '%s': %w", command, err)
+//		}
+//		if code == 0 {
+//			stdout = strings.TrimSpace(stdout)
+//			processName := strings.Split(stdout, " ")[0]
+//			processPid, err := strconv.Atoi(strings.Split(stdout, " ")[1])
+//			if err != nil {
+//				return fmt.Errorf("can't get pid: %w", err)
+//			}
+//			pterm.Info.Printfln("Can't start tunnel on port %d. It seems like it's take by a process '%s'.", port, processName)
+//			proc, err := os.FindProcess(processPid)
+//			if err != nil {
+//				return fmt.Errorf("can't find process: %w", err)
+//			}
+//
+//			_, err = os.Stat(filepath.Join(dir, "bastion.sock"))
+//			if processName == "ssh" && os.IsNotExist(err) {
+//				return fmt.Errorf("it could be another ize tunnel, but we can't find a socket. Something went wrong. We suggest terminating it and starting it up again")
+//			}
+//			isContinue := false
+//			if terminal.IsTerminal(int(os.Stdout.Fd())) {
+//				isContinue, err = pterm.DefaultInteractiveConfirm.WithDefaultText("Would you like to terminate it?").Show()
+//				if err != nil {
+//					return err
+//				}
+//			} else {
+//				isContinue = true
+//			}
+//
+//			if !isContinue {
+//				return fmt.Errorf("destroying was canceled")
+//			}
+//			err = proc.Kill()
+//			if err != nil {
+//				return fmt.Errorf("can't kill process: %w", err)
+//			}
+//
+//			pterm.Info.Printfln("Process '%s' (pid %d) was killed", processName, processPid)
+//
+//			return nil
+//		}
+//		return fmt.Errorf("error during run command: %s (exit code: %d, stderr: %s)", command, code, stderr)
+//	}
+//
+//	err = l.Close()
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
 
 //func checkTunnel(app *config.Atun) (bool, error) {
 //	bastionSocketPath := path.Join(app.Config.AppDir, "bastion.sock")
@@ -483,13 +546,7 @@ ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartS
 // TODO: Implement getFreePort - ability to use a random local if port is set to "auto" or "0"
 
 func init() {
-	upCmd.Flags().StringP("bastion", "b", "", "Bastion instance id to use. If not specified the first running instance with the atun.io tags is used")
-
-	if err := viper.BindPFlags(upCmd.Flags()); err != nil {
-		pterm.Error.Println("Error while binding flags")
-	}
-
-	// Add flags for VPC and Subnet
-	upCmd.PersistentFlags().String("bastion-vpc-id", "", "VPC ID of the bastion host to be created")
-	upCmd.PersistentFlags().String("bastion-subnet-id", "", "Subnet ID of the bastion host to be created")
+	logger.Debug("Initializing up command")
+	upCmd.PersistentFlags().StringP("bastion", "b", "", "Bastion instance id to use. If not specified the first running instance with the atun.io tags is used")
+	logger.Debug("Up command initialized")
 }

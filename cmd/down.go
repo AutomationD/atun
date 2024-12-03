@@ -6,8 +6,6 @@
 package cmd
 
 import (
-	"github.com/automationd/atun/internal/config"
-	"github.com/automationd/atun/internal/infra"
 	//"github.com/automationd/atun/internal/infra"
 	"github.com/pterm/pterm"
 
@@ -17,33 +15,22 @@ import (
 // downCmd represents the down command
 var downCmd = &cobra.Command{
 	Use:   "down",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Bring the tunnel down",
+	Long:  `Bring the existing tunnel down.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if len(args) == 0 {
 			pterm.Info.Printf("Down command called")
 		} else {
 			if args[0] == "bastion" {
-				err := infra.DestroyCDKTF(config.App.Config)
-				if err != nil {
-					pterm.Info.Printf("Error running CDKTF: %v\n", err)
-					return
-				}
-				pterm.Info.Println("CDKTF stack destroyed successfully")
+
 			}
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(downCmd)
-
+	//logger.Debug("Down command initialized")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

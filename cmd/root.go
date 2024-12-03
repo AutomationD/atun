@@ -6,10 +6,14 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/automationd/atun/internal/aws"
 	"github.com/automationd/atun/internal/config"
+	"github.com/automationd/atun/internal/constraints"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
+	"path/filepath"
 
 	//"github.com/automationd/atun/internal/config"
 	"os"
@@ -63,11 +67,19 @@ func init() {
 		pterm.Info.Println("Not binding binding env flag (none provided)")
 	}
 
+	//if err := viper.BindPFlags(rootCmd.Flags()); err != nil {
+	//	pterm.Error.Println("Error while binding flags")
+	//}
+
 	// TODO: Use Method Receiver (pass atun all the way to the command)
 	rootCmd.AddCommand(
 		upCmd,
+		downCmd,
+		addCmd,
+		delCmd,
 		statusCmd,
-		versionCmd)
+		versionCmd,
+	)
 
 	//cobra.OnInitialize(config.LoadConfig)
 	cobra.OnInitialize(initializeAtun)
@@ -90,14 +102,14 @@ func initializeAtun() {
 		panic(err)
 	}
 
-	//// Ensure all constraints are met
-	//if err := constraints.CheckConstraints(
-	//	constraints.WithAWSProfile(),
-	//	constraints.WithAWSRegion(),
-	//); err != nil {
-	//	pterm.Error.Println("Failed to check constraints:", err)
-	//	os.Exit(1)
-	//}
+	// Ensure all constraints are met
+	if err := constraints.CheckConstraints(
+		constraints.WithAWSProfile(),
+		constraints.WithAWSRegion(),
+	); err != nil {
+		pterm.Error.Println("Failed to check constraints:", err)
+		os.Exit(1)
+	}
 
 	// Init AWS Session (probably should be moved to a separate function)
 	sess, err := aws.GetSession(&aws.SessionConfig{
@@ -109,7 +121,19 @@ func initializeAtun() {
 		panic(err)
 	}
 
+	logger.Debug("AWS Session initialized")
 	config.App.Session = sess
+
+	// Set directory for per-env-per-profile tunnel/cdk
+	config.App.Config.TunnelDir = filepath.Join(config.App.Config.AppDir, fmt.Sprintf("%s-%s", config.App.Config.Env, config.App.Config.AWSProfile))
+	logger.Debug("Tunnel directory set to", "tunnelDir", config.App.Config.TunnelDir)
+
+	logger.Debug("Ensure directory exists")
+	err = os.MkdirAll(config.App.Config.TunnelDir, 0755)
+	if err != nil {
+		logger.Fatal("Error creating tunnel directory", "tunnelDir", config.App.Config.TunnelDir, "error", err)
+		panic(err)
+	}
 
 	////Initialize Atun struct with configuration
 	//atun, err = NewAtun(cfg)

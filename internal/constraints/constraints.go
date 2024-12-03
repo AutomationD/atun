@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/automationd/atun/internal/config"
-
 	"github.com/pterm/pterm"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -27,6 +26,7 @@ type constraints struct {
 	awsProfile bool
 	awsRegion  bool
 	env        bool
+	hostConfig bool
 }
 
 // CheckConstraints checks if the constraints are met
@@ -56,6 +56,12 @@ func CheckConstraints(options ...Option) error {
 
 	if r.env {
 		if err := validateEnv(config.App.Config); err != nil {
+			return err
+		}
+	}
+
+	if r.hostConfig {
+		if err := validateHostConfig(config.App); err != nil {
 			return err
 		}
 	}
@@ -119,6 +125,12 @@ func WithENV() Option {
 	}
 }
 
+func WithHostConfig() Option {
+	return func(r *constraints) {
+		r.hostConfig = true
+	}
+}
+
 // ValidateAwsProfile checks if AWS_PROFILE is set in the config
 func validateAwsProfile(cfg *config.Config) error {
 	if cfg.AWSProfile == "" {
@@ -140,6 +152,40 @@ func validateEnv(cfg *config.Config) error {
 	if cfg.Env == "" {
 		return errors.New("ENV is not set. Please set it via command line or environment variable.")
 	}
+	return nil
+}
+
+// ValidateEnv checks if ENV is set in the config
+func validateHostConfig(cfg *config.Atun) error {
+	if len(cfg.Config.Hosts) == 0 {
+		//logger.Debug("Elements found in host config. Checking contents)
+
+		return errors.New("Host Config is not set. Please set it via command line or environment variables.")
+	}
+
+	// Check if cfg.Hosts has all required fields according to the Host struct
+	for _, host := range cfg.Config.Hosts {
+		if host.Name == "" {
+			return errors.New("Host Name is not set. Please set it via config file.")
+		}
+
+		// Check if host.Remote (integer) is not more than 0
+		if host.Remote <= 0 {
+			return errors.New("Host Remote port is not set. Please set it via config file.")
+		}
+
+		if host.Local < 0 {
+			return errors.New("Host Local port is not set. Please set it via config file.")
+		}
+
+		if host.Proto == "" {
+			{
+				return errors.New("Host Protocol is not set. Please set it via config file.")
+			}
+
+		}
+	}
+
 	return nil
 }
 

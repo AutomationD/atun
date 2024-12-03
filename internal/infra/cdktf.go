@@ -9,58 +9,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/automationd/atun/internal/config"
+	"github.com/automationd/atun/internal/constraints"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/jsii-runtime-go"
 	awsprovider "github.com/cdktf/cdktf-provider-aws-go/aws/v19/provider"
 	"github.com/hashicorp/terraform-cdk-go/cdktf"
 
-	//"github.com/automationd/atun/internal/config"
-	"github.com/pterm/pterm"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
-// CreateStack defines the CDKTF stack
-func CreateStack(c *config.Config) {
-	app := cdktf.NewApp(nil)
-	stack := cdktf.NewTerraformStack(app, jsii.String("atun-stack"))
+// createStack defines the CDKTF stack (generates Terraform).
+func createStack(c *config.Config) {
+	//app := cdktf.NewApp(nil)
+	app := cdktf.NewApp(&cdktf.AppConfig{
+		Outdir: jsii.String(filepath.Join(c.TunnelDir)), // Set your desired directory here
+	})
+	stack := cdktf.NewTerraformStack(app, jsii.String(fmt.Sprintf("%s-%s", c.AWSProfile, c.Env)))
 
 	awsprovider.NewAwsProvider(stack, jsii.String("AWS"), &awsprovider.AwsProviderConfig{
-		Region:  jsii.String(config.App.Config.AWSRegion),
-		Profile: jsii.String(config.App.Config.AWSProfile),
+		Region:  jsii.String(c.AWSRegion),
+		Profile: jsii.String(c.AWSProfile),
 	})
 
 	// TODO: get hosts from atun.toml and add it to the tags with a loop
 
 	atun := config.Atun{
 		Version: "1",
-		Hosts:   config.InitialApp.Hosts,
-		//Hosts: []config.Host{
-		//	{
-		//		Name:   "ip-10-30-25-144.ec2.internal",
-		//		Proto:  "ssm",
-		//		Remote: "22",018401
-		//		Local:  "10001",
-		//	},
-		//	{
-		//		Name:   "ip-10-30-25-144.ec2.internal",
-		//		Proto:  "ssm",
-		//		Remote: "443",
-		//		Local:  "10002",
-		//	},
-		//	{
-		//		Name:   "ip-10-30-00-00.ec2.internal",
-		//		Proto:  "ssm",
-		//		Remote: "443",
-		//		Local:  "10003",
-		//	},
-		//	{
-		//		Name:   "ip-10-30-00-10.ec2.internal",
-		//		Proto:  "ssm",
-		//		Remote: "4444",
-		//		Local:  "10005",
-		//	},
-		//},
+		Config:  c,
 	}
 
 	//hostConfigJSON, err := json.Marshal(Host{
@@ -88,7 +65,7 @@ func CreateStack(c *config.Config) {
 	hostConfigs := make(map[string][]map[string]interface{})
 
 	// Process each host and add it to the final map using the Name as the key
-	for _, host := range atun.Hosts {
+	for _, host := range atun.Config.Hosts {
 		key := fmt.Sprintf("atun.io/host/%s", host.Name)
 		hostConfig := map[string]interface{}{
 			"proto":  host.Proto,
@@ -120,23 +97,38 @@ func CreateStack(c *config.Config) {
 
 	// TODO: Add ability to use other Terraform modules. Maybe use a map of modules and their Parameters, like "module-name": {"param1": "value1", "param2": "value2"}
 	// Add the module
+
+	if err := constraints.CheckConstraints(
+		constraints.WithSSMPlugin(),
+		constraints.WithAWSProfile(),
+		constraints.WithAWSRegion(),
+		constraints.WithENV(),
+	); err != nil {
+		logger.Fatal("Error checking constraints", "error", err)
+	}
+
+	logger.Debug("All constraints satisfied")
+
+	terraformVariablesModules := map[string]interface{}{
+		"env":                 config.App.Config.Env,
+		"name":                config.App.Config.BastionInstanceName,
+		"ec2_key_pair_name":   config.App.Config.AWSKeyPair,
+		"public_subnets":      []string{},
+		"private_subnets":     []string{config.App.Config.BastionSubnetID},
+		"allowed_cidr_blocks": []string{"0.0.0.0/0"},
+		"instance_type":       config.App.Config.AWSInstanceType,
+		"vpc_id":              config.App.Config.BastionVPCID,
+		"tags":                tags,
+	}
+
+	logger.Debug("Terraform Variables", "variables", terraformVariablesModules)
+
 	cdktf.NewTerraformHclModule(stack, jsii.String("Vpc"), &cdktf.TerraformHclModuleConfig{
 		// TODO: Parameterize all variables
 		Source:  jsii.String("hazelops/ec2-bastion/aws"),
-		Version: jsii.String("~>3.0.6"),
+		Version: jsii.String("~>4.0"),
 
-		Variables: &map[string]interface{}{
-			"env":                 "test",
-			"name":                "atun-bastion",
-			"ec2_key_pair_name":   "dmitry.kireev",
-			"public_subnets":      []string{config.App.Config.BastionSubnetID},
-			"private_subnets":     []string{},
-			"allowed_cidr_blocks": []string{"0.0.0.0/0"},
-			"aws_profile":         config.App.Config.AWSProfile,
-			"instance_type":       "t3.nano",
-			"vpc_id":              config.App.Config.BastionVPCID,
-			"tags":                tags,
-		},
+		Variables: &terraformVariablesModules,
 	})
 
 	//cdktf.NewRemoteBackend(stack, &cdktf.RemoteBackendProps{
@@ -148,12 +140,13 @@ func CreateStack(c *config.Config) {
 	app.Synth()
 }
 
-// ApplyCDKTF runs the CDKTF commands
+// ApplyCDKTF performs the 'apply' of theCDKTF stack
 func ApplyCDKTF(c *config.Config) error {
-	pterm.Info.Printf("Applying CDKTF stack with profile %s and region %s\n", c.AWSProfile, c.AWSRegion)
-	CreateStack(c)
+	logger.Info("Applying CDKTF stack.", "profile", c.AWSProfile, "region", c.AWSRegion)
+
+	createStack(c)
 	// Change to the synthesized directory
-	synthDir := filepath.Join("cdktf.out", "stacks", "atun-stack")
+	synthDir := filepath.Join(c.TunnelDir, "stacks", fmt.Sprintf("%s-%s", c.AWSProfile, c.Env))
 	cmd := exec.Command("terraform", "init")
 	cmd.Dir = synthDir
 	cmd.Stdout = os.Stdout
@@ -162,7 +155,8 @@ func ApplyCDKTF(c *config.Config) error {
 		return err
 	}
 
-	// TODO: Manage Terraform Install
+	// TODO: Manage Terraform / OpenTofu Install
+
 	cmd = exec.Command("terraform", "apply", "-auto-approve")
 	cmd.Dir = synthDir
 	cmd.Stdout = os.Stdout
@@ -170,11 +164,11 @@ func ApplyCDKTF(c *config.Config) error {
 	return cmd.Run()
 }
 
-// DestroyCDKTF runs the CDKTF commands
-func DestroyCDKTF(config *config.Config) error {
-	CreateStack(config)
+// DestroyCDKTF performs the 'destroy' of the CDKTF stack
+func DestroyCDKTF(c *config.Config) error {
+	createStack(c)
 	// Change to the synthesized directory
-	synthDir := filepath.Join("cdktf.out", "stacks", "atun-stack")
+	synthDir := filepath.Join(c.TunnelDir, "stacks", fmt.Sprintf("%s-%s", c.AWSProfile, c.Env))
 	cmd := exec.Command("terraform", "init")
 	cmd.Dir = synthDir
 	cmd.Stdout = os.Stdout
