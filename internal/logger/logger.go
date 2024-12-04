@@ -6,6 +6,7 @@
 package logger
 
 import (
+	"github.com/spf13/viper"
 	"log/slog"
 	"os"
 	"strings"
@@ -71,5 +72,5 @@ func Fatal(msg string, keysAndValues ...interface{}) {
 
 func init() {
 	// Initialize the logger with the default log level
-	Initialize("debug")
+	Initialize(viper.GetString("LOG_LEVEL"))
 }

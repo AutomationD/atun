@@ -100,7 +100,7 @@ func LoadConfig() error {
 			logger.Debug("No config file found. Using defaults and environment variables.")
 		}
 	} else {
-		logger.Debug("Using config file:", viper.ConfigFileUsed())
+		logger.Debug("Using config file:", "configFile", viper.ConfigFileUsed())
 	}
 
 	// Initialize the logger after config is read (second time)
@@ -135,6 +135,7 @@ func LoadConfig() error {
 	viper.SetDefault("SSH_STRICT_HOST_KEY_CHECKING", true)
 	viper.SetDefault("AWS_INSTANCE_TYPE", "t3.nano")
 	viper.SetDefault("BASTION_INSTANCE_NAME", "atun-bastion")
+	viper.SetDefault("SSH_STRICT_HOST_KEY_CHECKING", false) // Strict host key checking is disabled by default for better user experience. Debatable
 
 	// TODO?: Move init a separate file with correct imports of config
 	App = &Atun{

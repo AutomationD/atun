@@ -89,13 +89,13 @@ func GetBastionHostConfig(bastionHostID string) (config.Atun, error) {
 
 				var host config.Host
 
-				host.Name = strings.TrimPrefix(k, "atun.io/host/")
-
 				err := json.Unmarshal([]byte(v), &host)
 				if err != nil {
-					logger.Error("Error unmarshalling host tags", "host", host.Name, "error", err)
+					logger.Error("Error unmarshalling host tags", "v", v, "host", host.Name, "error", err)
 					continue
 				}
+
+				host.Name = strings.TrimPrefix(k, "atun.io/host/")
 
 				// Allocate free local port dynamically if set to 0
 				if host.Local == 0 {
@@ -138,7 +138,7 @@ func SetAWSCredentials(sess *session.Session) error {
 }
 
 func StartTunnel(app *config.Atun) (string, error) {
-	logger.Debug("Starting tunnel", "bastion", app.Config.BastionHostID, "SSHKeyPath", app.Config.AppDir, "SSHConfigFile", app.Config.SSHConfigFile, "env", app.Config.Env)
+	logger.Debug("Starting tunnel", "bastion", app.Config.BastionHostID, "SSHKeyPath", app.Config.SSHKeyPath, "SSHConfigFile", app.Config.SSHConfigFile, "env", app.Config.Env)
 
 	if err := SetAWSCredentials(app.Session); err != nil {
 		return "", fmt.Errorf("can't start tunnel: %w", err)

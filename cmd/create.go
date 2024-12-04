@@ -20,8 +20,8 @@ import (
 	"strconv"
 )
 
-// addCmd represents the add command
-var addCmd = &cobra.Command{
+// createCmd represents the add command
+var createCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Adds ad-hoc bastion host to the infrastructure",
 	Long: `Adds ad-hoc bastion host to the infrastructure. 
@@ -91,16 +91,16 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// createCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Add flags for VPC and Subnet
-	addCmd.PersistentFlags().String("bastion-vpc-id", "", "VPC ID of the bastion host to be created")
-	addCmd.PersistentFlags().String("bastion-subnet-id", "", "Subnet ID of the bastion host to be created")
-	addCmd.PersistentFlags().String("aws-key-pair", "", "AWS Key Pair Name to use for the bastion host")
+	createCmd.PersistentFlags().String("bastion-vpc-id", "", "VPC ID of the bastion host to be created")
+	createCmd.PersistentFlags().String("bastion-subnet-id", "", "Subnet ID of the bastion host to be created")
+	createCmd.PersistentFlags().String("aws-key-pair", "", "AWS Key Pair Name to use for the bastion host")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	logger.Debug("Init add command done")
 }
 

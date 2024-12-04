@@ -75,8 +75,8 @@ func init() {
 	rootCmd.AddCommand(
 		upCmd,
 		downCmd,
-		addCmd,
-		delCmd,
+		createCmd,
+		deleteCmd,
 		statusCmd,
 		versionCmd,
 	)
@@ -138,6 +138,7 @@ func initializeAtun() {
 	//if err != nil {
 	//	log.Fatalf("failed to initialize atun: %v", err)
 	//}
+
 }
 
 ////// NewAtun initializes a new Atun instance with a given configuration
@@ -154,4 +155,8 @@ func initializeAtun() {
 ////		Config:  cfg,
 ////		Session: sess,
 ////	}, nil
+//}
+
+//func init() {
+//
 //}

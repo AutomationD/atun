@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pterm/pterm"
 	"strings"
+	"time"
 )
 
 func NewEC2Client() (*ec2.EC2, error) {
@@ -151,13 +152,15 @@ func GetAccountId() string {
 func SendSSHPublicKey(instanceID string, publicKey string) error {
 	// This command is executed in the bastion host and it checks if our public publicKey is present. If it's not it uploads it to the authorized_keys file.
 	command := fmt.Sprintf(
-		`grep -qR "%s" /home/ubuntu/.ssh/authorized_keys || echo "%s" >> /home/ubuntu/.ssh/authorized_keys`,
+
+		`grep -qR "%s" /home/ec2-user/.ssh/authorized_keys || echo "%s" | tee -a /home/ec2-user/.ssh/authorized_keys`,
 		strings.TrimSpace(publicKey), strings.TrimSpace(publicKey),
 	)
+	//command := `whoami`
 
 	logger.Debug("Sending command", "command", command)
 
-	_, err := ssm.New(config.App.Session).SendCommand(&ssm.SendCommandInput{
+	sendCommandOutput, err := ssm.New(config.App.Session).SendCommand(&ssm.SendCommandInput{
 		InstanceIds:  []*string{&instanceID},
 		DocumentName: aws.String("AWS-RunShellScript"),
 		Comment:      aws.String("Add an SSH public publicKey to authorized_keys"),
@@ -167,6 +170,30 @@ func SendSSHPublicKey(instanceID string, publicKey string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("can't send SSH public publicKey: %w", err)
+	}
+
+	commandID := *sendCommandOutput.Command.CommandId
+	logger.Debug("Command sent. Waiting for completion", "commandID", commandID)
+
+	var output *ssm.GetCommandInvocationOutput
+	for i := 0; i < 5; i++ {
+		output, err = ssm.New(config.App.Session).GetCommandInvocation(&ssm.GetCommandInvocationInput{
+			CommandId:  aws.String(commandID),
+			InstanceId: aws.String(instanceID),
+		})
+		if err == nil && *output.Status == ssm.CommandInvocationStatusSuccess {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+	if err != nil {
+		return fmt.Errorf("can't get command invocation: %w", err)
+	}
+
+	logger.Debug("Command output", "stdout", *output.StandardOutputContent, "stderr", *output.StandardErrorContent, "exitCode", *output.ResponseCode)
+
+	if *output.ResponseCode != 0 {
+		return fmt.Errorf("command failed with exit code %d: %s", *output.ResponseCode, *output.StandardErrorContent)
 	}
 
 	return nil

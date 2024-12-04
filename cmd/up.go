@@ -14,6 +14,7 @@ import (
 	"github.com/automationd/atun/internal/tunnel"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // upCmd represents the up command
@@ -109,7 +110,8 @@ var upCmd = &cobra.Command{
 		// Send the public key to the bastion instance
 		err = aws.SendSSHPublicKey(config.App.Config.BastionHostID, publicKey)
 		if err != nil {
-			logger.Error("Can't run tunnel", "error", err)
+			logger.Fatal("Error adding local SSH Public key to the instance", "SSHPublicKey", publicKey, "BastionHostID", config.App.Config.BastionHostID, "error", err)
+			os.Exit(1)
 		}
 
 		logger.Debug("Public key sent to bastion host", "bastion", config.App.Config.BastionHostID)

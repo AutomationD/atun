@@ -68,8 +68,9 @@ func createStack(c *config.Config) {
 	// Set Env
 	tags["atun.io/env"] = atun.Config.Env
 
+	// TODO: Support multiple port configurations per host
 	// Group hosts by their Name and create slices for their configurations
-	hostConfigs := make(map[string][]map[string]interface{})
+	hostConfigs := make(map[string]map[string]interface{})
 
 	// Process each host and add it to the final map using the Name as the key
 	for _, host := range atun.Config.Hosts {
@@ -80,7 +81,7 @@ func createStack(c *config.Config) {
 			"remote": host.Remote,
 		}
 
-		hostConfigs[key] = append(hostConfigs[key], hostConfig)
+		hostConfigs[key] = hostConfig
 
 	}
 

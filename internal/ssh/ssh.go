@@ -10,11 +10,11 @@ import (
 	"github.com/automationd/atun/internal/config"
 	"github.com/automationd/atun/internal/logger"
 	ssh2 "golang.org/x/crypto/ssh"
+	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"syscall"
 )
 
 // c
@@ -28,23 +28,30 @@ func RunSSH(app *config.Atun, args []string) error {
 	os.Setenv("AWS_REGION", app.Config.AWSRegion)
 	os.Setenv("AWS_PROFILE", app.Config.AWSProfile)
 
-	// Detach the process (platform-dependent)
-	c.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true, // Detach process from the parent group
+	// Stream stdout and stderr
+	if app.Config.LogLevel == "debug" {
+		// Stream output to os.Stdout and os.Stderr in real-time
+		c.Stdout = io.MultiWriter(os.Stdout)
+		c.Stderr = io.MultiWriter(os.Stderr)
+	} else {
+		// Only display logs without streaming
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
 	}
 
-	// Start the process
-	if err := c.Start(); err != nil {
-		return fmt.Errorf("failed to start SSH process: %w", err)
+	// Run the command
+	if err := c.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "SSH command error: %v\n", err)
+		return fmt.Errorf("failed to run SSH process: %w", err)
 	}
 
 	logger.Info("SSH process started in the background", "pid", c.Process.Pid)
 
 	// Disown the process if the parent process is terminating
 	// This ensures the child process doesn't get terminated when the parent exits
-	go func() {
-		_ = c.Process.Release() // Detach the process fully
-	}()
+	//go func() {
+	//	_ = c.Process.Release() // Detach the process fully
+	//}()
 
 	return nil
 }
@@ -64,12 +71,14 @@ func GetSSHCommandArgs(app *config.Atun) []string {
 	} else {
 		logger.Debug("Tunnel socket not found. Creating a new one", "path", bastionSockFilePath)
 		args = []string{"-M", "-t", "-S", bastionSockFilePath, "-fN"}
+
+		// Disable strict host key checking
 		if !app.Config.SSHStrictHostKeyChecking {
 			args = append(args, "-o", "StrictHostKeyChecking=no")
 		}
 
 		// TODO: Add ability to support other instance types, not just ubuntu
-		args = append(args, fmt.Sprintf("ubuntu@%s", app.Config.BastionHostID))
+		args = append(args, fmt.Sprintf("ec2-user@%s", app.Config.BastionHostID))
 		args = append(args, "-F", app.Config.SSHConfigFile)
 
 		if _, err := os.Stat(app.Config.SSHKeyPath); !os.IsNotExist(err) {
