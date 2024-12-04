@@ -12,7 +12,6 @@ import (
 	"github.com/automationd/atun/internal/logger"
 	"github.com/automationd/atun/internal/ssh"
 	"github.com/automationd/atun/internal/tunnel"
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -51,7 +50,36 @@ var upCmd = &cobra.Command{
 		if bastionHost == "" {
 			config.App.Config.BastionHostID, err = tunnel.GetBastionHostID()
 			if err != nil {
-				logger.Fatal("Error discovering bastion host", "error", err)
+				logger.Error("Error discovering bastion host. You might need to run `atun create` command first", "error", err)
+				os.Exit(1)
+
+				// TODO: suggest creating a bastion host.
+				// Use survey to ask if the user wants to create a bastion host
+				// If yes, run the create command
+				// If no, return
+
+				//createHost := false
+				//err = survey.AskOne(&survey.Confirm{
+				//	Message: fmt.Sprintf("Would you like to create a bastion host?"),
+				//	Default: true,
+				//}, &createHost)
+				//if err != nil {
+				//	logger.Fatal("Error getting confirmation:", err)
+				//	return err
+				//}
+				//
+				//if !createHost {
+				//	logger.Info("Bastion host creation cancelled. Exiting.")
+				//	os.Exit(0)
+				//}
+				//
+				//// Run create command from here
+				//createCmd := &cobra.Command{}
+				//createCmd.SetArgs([]string{"create"})
+				//if err := createCmd.Execute(); err != nil {
+				//	logger.Fatal("Error executing create command:", err)
+				//	return err
+				//}
 			}
 		} else {
 			config.App.Config.BastionHostID = bastionHost
@@ -63,12 +91,13 @@ var upCmd = &cobra.Command{
 		// Read atun:config from the instance as `config`
 
 		bastionHostConfig, err := tunnel.GetBastionHostConfig(config.App.Config.BastionHostID)
+		if err != nil {
+			logger.Error("Error getting bastion host config", "err", err)
+		}
+
 		config.App.Version = bastionHostConfig.Version
 		config.App.Config.Hosts = bastionHostConfig.Config.Hosts
 
-		if err != nil {
-			pterm.Error.Printfln("Error getting bastion host config: %v", err)
-		}
 		//config.App.Config = atun.Config
 		//config.App.Hosts = atun.Hosts
 

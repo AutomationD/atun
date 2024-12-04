@@ -37,7 +37,8 @@ func GetBastionHostID() (string, error) {
 	}
 
 	if len(instances) == 0 {
-		logger.Fatal("No instances found with required tags in state RUNNING", "tags", tags)
+		err = fmt.Errorf("no instances found with required tags and in state RUNNING")
+		logger.Error("Error finding instances", "error", err, "tags", tags)
 		return "", err
 	}
 

@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/pterm/pterm"
 	"strings"
 	"time"
 )
@@ -102,7 +101,7 @@ func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 func GetInstanceTags(instanceID string) (map[string]string, error) {
 	ec2Client, err := NewEC2Client()
 	if err != nil {
-		pterm.Error.Println(err)
+		logger.Error("Failed to create EC2 client", "error", err)
 		return nil, err
 	}
 
@@ -112,7 +111,7 @@ func GetInstanceTags(instanceID string) (map[string]string, error) {
 
 	result, err := ec2Client.DescribeInstances(input)
 	if err != nil {
-		pterm.Error.Println(err)
+		logger.Error("Failed to describe instances", "error", err)
 		return nil, err
 	}
 
@@ -126,7 +125,7 @@ func GetInstanceTags(instanceID string) (map[string]string, error) {
 	}
 
 	if len(tags) == 0 {
-		pterm.Error.Println("No tags found for instance", instanceID)
+		logger.Error("No tags found for instance", "instanceID", instanceID)
 		return nil, fmt.Errorf("no tags found for instance %s", instanceID)
 	}
 
@@ -136,13 +135,13 @@ func GetInstanceTags(instanceID string) (map[string]string, error) {
 func GetAccountId() string {
 	stsClient, err := NewSTSClient()
 	if err != nil {
-		pterm.Error.Println("Error creating STS client:", err)
+		logger.Error("Error creating STS client", "error", err)
 		return ""
 	}
 
 	result, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
-		pterm.Error.Println("Error getting caller identity:", err)
+		logger.Error("Error getting account ID", "error", err)
 		return ""
 	}
 

@@ -22,11 +22,11 @@ import (
 
 // createCmd represents the add command
 var createCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Adds ad-hoc bastion host to the infrastructure",
-	Long: `Adds ad-hoc bastion host to the infrastructure. 
+	Use:   "create",
+	Short: "Creates an ad-hoc bastion host to a specified subnet",
+	Long: `Creates ad-hoc bastion host to a specified subnet. Performed via CDKTF/Terraform 
 	This is useful when there is no IaC in place and there is a need to connect to a resource private.
-	State is saved locally and it's advised to bring it down with 'del' after the task is finished.`,
+	State is saved locally and it's advised to delete it after the task is finished.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
