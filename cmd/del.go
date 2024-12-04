@@ -7,8 +7,7 @@ package cmd
 import (
 	"github.com/automationd/atun/internal/config"
 	"github.com/automationd/atun/internal/infra"
-	"github.com/pterm/pterm"
-
+	"github.com/automationd/atun/internal/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -29,11 +28,11 @@ to quickly create a Cobra application.`,
 
 		err := infra.DestroyCDKTF(config.App.Config)
 		if err != nil {
-			pterm.Info.Printf("Error running CDKTF: %v\n", err)
+			logger.Error("Error running CDKTF", "error", err)
 			return
 
 		}
-		pterm.Info.Println("CDKTF stack destroyed successfully")
+		logger.Info("CDKTF stack destroyed successfully")
 	},
 }
 

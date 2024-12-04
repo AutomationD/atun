@@ -19,14 +19,15 @@ import (
 )
 
 type constraints struct {
-	configFile bool
-	ssmplugin  bool
-	structure  bool
-	nvm        bool
-	awsProfile bool
-	awsRegion  bool
-	env        bool
-	hostConfig bool
+	configFile    bool
+	ssmplugin     bool
+	structure     bool
+	nvm           bool
+	awsProfile    bool
+	awsRegion     bool
+	env           bool
+	hostConfig    bool
+	bastionHostID bool
 }
 
 // CheckConstraints checks if the constraints are met
@@ -62,6 +63,12 @@ func CheckConstraints(options ...Option) error {
 
 	if r.hostConfig {
 		if err := validateHostConfig(config.App); err != nil {
+			return err
+		}
+	}
+
+	if r.bastionHostID {
+		if err := validateBastionHostConfigID(config.App.Config); err != nil {
 			return err
 		}
 	}
@@ -131,6 +138,12 @@ func WithHostConfig() Option {
 	}
 }
 
+func WithBastionHostID() Option {
+	return func(r *constraints) {
+		r.bastionHostID = true
+	}
+}
+
 // ValidateAwsProfile checks if AWS_PROFILE is set in the config
 func validateAwsProfile(cfg *config.Config) error {
 	if cfg.AWSProfile == "" {
@@ -186,6 +199,13 @@ func validateHostConfig(cfg *config.Atun) error {
 		}
 	}
 
+	return nil
+}
+
+func validateBastionHostConfigID(cfg *config.Config) error {
+	if cfg.BastionHostID == "" {
+		return errors.New("Bastion Host ID is not set.")
+	}
 	return nil
 }
 
