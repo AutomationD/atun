@@ -67,10 +67,15 @@ func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 
 	var filters []*ec2.Filter
 	for key, value := range tags {
-		filters = append(filters, &ec2.Filter{
-			Name:   aws.String(fmt.Sprintf("tag:%s", key)),
-			Values: []*string{aws.String(value)},
-		})
+		filters = append(filters,
+			&ec2.Filter{
+				Name:   aws.String(fmt.Sprintf("tag:%s", key)),
+				Values: []*string{aws.String(value)},
+			},
+			&ec2.Filter{
+				Name:   aws.String("instance-state-name"),
+				Values: []*string{aws.String("running")},
+			})
 	}
 
 	input := &ec2.DescribeInstancesInput{
@@ -89,7 +94,7 @@ func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 		return nil, err
 	}
 
-	logger.Debug(fmt.Sprintf("Found %d instances matching tags", len(instances)))
+	logger.Debug(fmt.Sprintf("Found %d instances with matching tags", len(instances)))
 	return instances, nil
 }
 

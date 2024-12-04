@@ -13,6 +13,8 @@ import (
 	"github.com/automationd/atun/internal/logger"
 	"github.com/automationd/atun/internal/ssh"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"log"
+	"net"
 	"os"
 	"strings"
 )
@@ -35,7 +37,7 @@ func GetBastionHostID() (string, error) {
 	}
 
 	if len(instances) == 0 {
-		logger.Fatal("No instances found with required tags", "tags", tags)
+		logger.Fatal("No instances found with required tags in state RUNNING", "tags", tags)
 		return "", err
 	}
 
@@ -93,6 +95,15 @@ func GetBastionHostConfig(bastionHostID string) (config.Atun, error) {
 				if err != nil {
 					logger.Error("Error unmarshalling host tags", "host", host.Name, "error", err)
 					continue
+				}
+
+				// Allocate free local port dynamically if set to 0
+				if host.Local == 0 {
+					port, err := getFreePort()
+					if err != nil {
+						return config.Atun{}, err
+					}
+					host.Local = port
 				}
 
 				// Append the host to the Hosts config
@@ -185,25 +196,25 @@ func StartTunnel(app *config.Atun) (string, error) {
 
 // TODO: Automatic port logic
 
-//func getFreePort() (int, error) {
-//	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	l, err := net.ListenTCP("tcp", addr)
-//	if err != nil {
-//		return 0, err
-//	}
-//	defer func(l *net.TCPListener) {
-//		err := l.Close()
-//		if err != nil {
-//			log.Fatal(err)
-//		}
-//	}(l)
-//	return l.Addr().(*net.TCPAddr).Port, nil
-//}
-//
+func getFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer func(l *net.TCPListener) {
+		err := l.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(l)
+	return l.Addr().(*net.TCPAddr).Port, nil
+}
+
 //func checkPort(port int, dir string) error {
 //	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 //	if err != nil {

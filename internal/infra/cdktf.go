@@ -14,7 +14,6 @@ import (
 	"github.com/aws/jsii-runtime-go"
 	awsprovider "github.com/cdktf/cdktf-provider-aws-go/aws/v19/provider"
 	"github.com/hashicorp/terraform-cdk-go/cdktf"
-
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,11 +21,16 @@ import (
 
 // createStack defines the CDKTF stack (generates Terraform).
 func createStack(c *config.Config) {
-	//app := cdktf.NewApp(nil)
 	app := cdktf.NewApp(&cdktf.AppConfig{
 		Outdir: jsii.String(filepath.Join(c.TunnelDir)), // Set your desired directory here
 	})
+
 	stack := cdktf.NewTerraformStack(app, jsii.String(fmt.Sprintf("%s-%s", c.AWSProfile, c.Env)))
+
+	// Configure the local backend to store state in the tunnel directory
+	cdktf.NewLocalBackend(stack, &cdktf.LocalBackendConfig{
+		Path: jsii.String(filepath.Join(c.TunnelDir, "terraform.tfstate")), // Specify state file path
+	})
 
 	awsprovider.NewAwsProvider(stack, jsii.String("AWS"), &awsprovider.AwsProviderConfig{
 		Region:  jsii.String(c.AWSRegion),
@@ -60,6 +64,9 @@ func createStack(c *config.Config) {
 
 	// Add the version directly to the final map
 	tags["atun.io/version"] = atun.Version
+
+	// Set Env
+	tags["atun.io/env"] = atun.Config.Env
 
 	// Group hosts by their Name and create slices for their configurations
 	hostConfigs := make(map[string][]map[string]interface{})
