@@ -10,11 +10,12 @@ import (
 	"github.com/automationd/atun/internal/config"
 	"github.com/automationd/atun/internal/logger"
 	ssh2 "golang.org/x/crypto/ssh"
-	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
+	"syscall"
 )
 
 // c
@@ -28,30 +29,60 @@ func RunSSH(app *config.Atun, args []string) error {
 	os.Setenv("AWS_REGION", app.Config.AWSRegion)
 	os.Setenv("AWS_PROFILE", app.Config.AWSProfile)
 
-	// Stream stdout and stderr
-	if app.Config.LogLevel == "debug" {
-		// Stream output to os.Stdout and os.Stderr in real-time
-		c.Stdout = io.MultiWriter(os.Stdout)
-		c.Stderr = io.MultiWriter(os.Stderr)
-	} else {
-		// Only display logs without streaming
-		c.Stdout = os.Stdout
-		c.Stderr = os.Stderr
+	// Detach the process (platform-dependent)
+	c.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true, // Detach process from the parent group
 	}
 
+	//// Stream stdout and stderr
+	//if app.Config.LogLevel == "debug" {
+	//	// Stream output to os.Stdout and os.Stderr in real-time
+	//	stdoutPipe, err := c.StdoutPipe()
+	//	if err != nil {
+	//		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	//	}
+	//	stderrPipe, err := c.StderrPipe()
+	//	if err != nil {
+	//		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	//	}
+	//
+	//	go io.Copy(os.Stdout, stdoutPipe)
+	//	go io.Copy(os.Stderr, stderrPipe)
+	//} else {
+	// Only display logs without streaming
+	//c.Stdout = os.Stdout
+	//c.Stderr = os.Stderr
+	//}
+	//if app.Config.LogLevel == "debug" {
+	//	stdout, err := c.StdoutPipe()
+	//	if err != nil {
+	//		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	//	}
+	//
+	//	stderr, err := c.StderrPipe()
+	//	if err != nil {
+	//		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	//	}
+	//
+	//	go io.Copy(os.Stdout, stdout)
+	//	go io.Copy(os.Stderr, stderr)
+	//}
 	// Run the command
 	if err := c.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "SSH command error: %v\n", err)
 		return fmt.Errorf("failed to run SSH process: %w", err)
+
+		// Print stdot and stderr from the command
+
 	}
 
 	logger.Info("SSH process started in the background", "pid", c.Process.Pid)
 
 	// Disown the process if the parent process is terminating
 	// This ensures the child process doesn't get terminated when the parent exits
-	//go func() {
-	//	_ = c.Process.Release() // Detach the process fully
-	//}()
+	go func() {
+		_ = c.Process.Release() // Detach the process fully
+	}()
 
 	return nil
 }
@@ -157,7 +188,22 @@ ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartS
 	return sshConfigFile.Name(), nil
 }
 
-func GetTunnelStatus(app *config.Atun) (error, bool) {
+func GetSSMPluginStatus(app *config.Atun) (bool, error) {
+	// Check if `session-manager-plugin' is started and process contains Bastion instance ID
+	cmd := exec.Command("ps", "aux")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to check SSM plugin status: %w", err)
+	}
+
+	if !strings.Contains(string(output), app.Config.BastionHostID) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func GetTunnelStatus(app *config.Atun) (bool, error) {
 	bastionSockFilePath := getBastionSockFilePath(app)
 
 	// If a bastion socket file exists, check the tunnel status
@@ -176,15 +222,45 @@ func GetTunnelStatus(app *config.Atun) (error, bool) {
 		}
 
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to check tunnel status: %w", err), false
+			return false, fmt.Errorf("failed to check tunnel status: %w", err)
 		}
 
-		return nil, true
+		return true, nil
 
 	}
 
 	logger.Debug("Tunnel socket not found. Tunnel is not running", "path", bastionSockFilePath)
-	return nil, false
+	return false, nil
+}
+
+func StopTunnel(app *config.Atun) (bool, error) {
+	bastionSockFilePath := getBastionSockFilePath(app)
+
+	// If a bastion socket file exists, check the tunnel status
+	if _, err := os.Stat(bastionSockFilePath); !os.IsNotExist(err) {
+		logger.Info("A tunnel socket from has been found", "path", bastionSockFilePath)
+
+		args := []string{"ssh", "-S", bastionSockFilePath, "-O", "exit", ""}
+
+		// Run the SSH command in a blocking way
+		cmd := exec.Command("ssh", args...)
+		logger.Debug("Running SSH command", "command", cmd.String())
+		cmd.Dir = app.Config.AppDir
+
+		if app.Config.LogLevel == "debug" {
+			cmd.Args = append(cmd.Args, "-vvv")
+		}
+
+		if err := cmd.Run(); err != nil {
+			return false, fmt.Errorf("failed to exit tunnel: %w", err)
+		}
+
+		return true, nil
+
+	}
+
+	logger.Debug("Tunnel socket not found. Tunnel is not running", "path", bastionSockFilePath)
+	return false, nil
 }
 
 func getBastionSockFilePath(app *config.Atun) string {

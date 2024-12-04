@@ -92,7 +92,7 @@ var upCmd = &cobra.Command{
 
 		bastionHostConfig, err := tunnel.GetBastionHostConfig(config.App.Config.BastionHostID)
 		if err != nil {
-			logger.Error("Error getting bastion host config", "err", err)
+			logger.Fatal("Error getting bastion host config", "err", err)
 		}
 
 		config.App.Version = bastionHostConfig.Version
@@ -204,8 +204,6 @@ var upCmd = &cobra.Command{
 //
 //	return false, nil
 //}
-
-// TODO: Implement getFreePort - ability to use a random local if port is set to "auto" or "0"
 
 func init() {
 	logger.Debug("Initializing up command")

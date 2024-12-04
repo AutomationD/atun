@@ -42,6 +42,7 @@ type Config struct {
 	TunnelDir                string
 	LogLevel                 string
 	Env                      string
+	AutoAllocatePort         bool
 }
 
 // TODO: Add ability to add multiple ports for forwarding for one host
@@ -136,6 +137,7 @@ func LoadConfig() error {
 	viper.SetDefault("AWS_INSTANCE_TYPE", "t3.nano")
 	viper.SetDefault("BASTION_INSTANCE_NAME", "atun-bastion")
 	viper.SetDefault("SSH_STRICT_HOST_KEY_CHECKING", false) // Strict host key checking is disabled by default for better user experience. Debatable
+	viper.SetDefault("AUTO_ALLOCATE_PORT", false)           // Port auto-allocation is disabled by default
 
 	// TODO?: Move init a separate file with correct imports of config
 	App = &Atun{
@@ -156,6 +158,7 @@ func LoadConfig() error {
 			ConfigFile:               viper.ConfigFileUsed(),
 			AppDir:                   appDir,
 			LogLevel:                 viper.GetString("LOG_LEVEL"),
+			AutoAllocatePort:         viper.GetBool("AUTO_ALLOCATE_PORT"),
 		},
 		Session: nil,
 	}

@@ -99,12 +99,19 @@ func GetBastionHostConfig(bastionHostID string) (config.Atun, error) {
 				host.Name = strings.TrimPrefix(k, "atun.io/host/")
 
 				// Allocate free local port dynamically if set to 0
+
 				if host.Local == 0 {
-					port, err := getFreePort()
-					if err != nil {
+					if config.App.Config.AutoAllocatePort {
+						port, err := getFreePort()
+						if err != nil {
+							return config.Atun{}, err
+						}
+						host.Local = port
+					} else {
+						// create error "can't allocate port %d"
+						err = fmt.Errorf("can't allocate port %d", host.Local)
 						return config.Atun{}, err
 					}
-					host.Local = port
 				}
 
 				// Append the host to the Hosts config
@@ -146,13 +153,22 @@ func StartTunnel(app *config.Atun) (string, error) {
 	}
 
 	// Check if tunnel already exists
-	err, tunnelIsUp := ssh.GetTunnelStatus(app)
+	tunnelIsUp, err := ssh.GetTunnelStatus(app)
 	if err != nil {
 		return "", fmt.Errorf("can't check tunnel: %w", err)
 	}
 
 	// If tunnel is not up
 	if !tunnelIsUp {
+		// Check if SSMPlugin is running
+		ssmPluginIsRunning, err := ssh.GetSSMPluginStatus(app)
+		if err != nil {
+			return "", fmt.Errorf("can't check SSM plugin: %w", err)
+		}
+
+		if ssmPluginIsRunning {
+			return "", fmt.Errorf("Tunnel is down but SSM plugin is already running with bastion host %s", app.Config.BastionHostID)
+		}
 
 		// If tunnel exists show message it's already up and show path to socket and forwarding config
 
@@ -161,8 +177,9 @@ func StartTunnel(app *config.Atun) (string, error) {
 		// Get the SSH command arguments
 		args := ssh.GetSSHCommandArgs(app)
 
+		// TODO: Refactor without RunSSH, but instead have a dedicated fnction
 		// Run the SSH command
-		err := ssh.RunSSH(app, args)
+		err = ssh.RunSSH(app, args)
 		if err != nil {
 			return "", err
 		}

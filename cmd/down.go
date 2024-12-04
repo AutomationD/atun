@@ -48,9 +48,9 @@ var downCmd = &cobra.Command{
 
 		logger.Debug("All constraints satisfied")
 
-		err, tunnelStatus := ssh.GetTunnelStatus(config.App)
+		tunnelStatus, err := ssh.StopTunnel(config.App)
 		if err != nil {
-			logger.Error("Failed to get tunnel status", "error", err)
+			logger.Error("Failed to stop tunnel", "error", err)
 		}
 
 		logger.Debug("Tunnel status", "status", tunnelStatus)
