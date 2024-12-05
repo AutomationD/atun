@@ -39,7 +39,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete "0.0.0-dev" --yes || echo "No release to delete"
+          gh release delete "${{ env.DEV_VERSION }}" --yes || echo "No release to delete"
           
           git config --global user.email "dmitry@atd.sh"
           git config --global user.name "Dmitry Kireev"
