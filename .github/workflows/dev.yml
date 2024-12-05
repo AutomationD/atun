@@ -12,6 +12,9 @@ on:
 permissions:
   contents: write
 
+env:
+  DEV_VERSION: 0.0.0-dev
+
 jobs:
   goreleaser:
     name: Build and Release with GoReleaser
@@ -40,13 +43,13 @@ jobs:
           
           git config --global user.email "dmitry@atd.sh"
           git config --global user.name "Dmitry Kireev"
-          git tag -d "0.0.0-dev" || echo "No tag to delete"
-          git push origin :refs/tags/0.0.0-dev || echo "No remote tag to delete"
+          git tag -d "${{ env.DEV_VERSION }}" || echo "No tag to delete"
+          git push origin :refs/tags/${{ env.DEV_VERSION }} || echo "No remote tag to delete"
 
       # Add 0.0.0-dev tag
       - name: Add tag
         run: |
-          git tag -a 0.0.0-dev -m "Development release"          
+          git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
           git push origin ${{ github.ref_name }}
 
       - name: Run GoReleaser
