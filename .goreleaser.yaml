@@ -9,11 +9,11 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
+#      - darwin
 #      - windows # disabled for now
     goarch:
       - amd64
-      - arm64
+#      - arm64
     ldflags:
       - -s -w -X version.version={{.Version}}
 
