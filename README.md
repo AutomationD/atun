@@ -23,6 +23,10 @@ brew install atun
 brew tap automationd/tap
 brew install atun --build-from-source
 ```
+If the dev version has cached old metadata (b/c version is the same), use this command:
+```shell
+brew fetch --force atun
+```
 
 ![demo.gif](demo.gif)
 
