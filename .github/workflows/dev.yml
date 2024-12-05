@@ -46,7 +46,6 @@ jobs:
           git tag -d "${{ env.DEV_VERSION }}" || echo "No tag to delete"
           git push origin :refs/tags/${{ env.DEV_VERSION }} || echo "No remote tag to delete"
 
-      # Add 0.0.0-dev tag
       - name: Add tag
         run: |
           git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
@@ -65,3 +64,4 @@ jobs:
           FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
+
