@@ -35,8 +35,6 @@ checksum:
 
 brews:
   - name: atun
-    alternative_names:
-      - "atun@{{ .Version }}"
     repository:
       owner: AutomationD
       name: homebrew-tap
