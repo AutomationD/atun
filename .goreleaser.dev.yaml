@@ -28,7 +28,7 @@ release:
   github:
     owner: AutomationD
     name: atun
-  draft: true
+  draft: false
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
@@ -52,7 +52,6 @@ brews:
     conflicts:
       - atun-dev
       - atun-dev@{{ .Version }}
-
 
     test: |
       system "#{bin}/atun --version"
