@@ -8,6 +8,7 @@ on:
 #      - "*.*.*"
 #      - "*.*.*-dev"
 
+
 permissions:
   contents: write
 
@@ -31,13 +32,9 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh
 
-      - name: Authenticate GitHub CLI
+      - name: Delete existing release and tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh auth login
-
-      - name: Delete existing release and tag
         run: |
           gh release delete ${{ github.ref_name }} --yes || echo "No release to delete"
           git tag -d ${{ github.ref_name }} || echo "No tag to delete"
