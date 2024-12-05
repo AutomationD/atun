@@ -28,6 +28,11 @@ jobs:
         run: |
           echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
 
+      # Add 0.0.0-dev tag
+      - name: Add tag
+        run: git tag -a 0.0.0-dev -m "Development release"
+        continue-on-error: true
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
