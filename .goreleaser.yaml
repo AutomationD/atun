@@ -34,7 +34,7 @@ checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
 brews:
-  - name: atun
+  - name: atun-dev
     repository:
       owner: AutomationD
       name: homebrew-atun
