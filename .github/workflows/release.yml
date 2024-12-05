@@ -2,7 +2,9 @@ name: Release Pipeline
 
 on:
   release:
-    types: [created]
+    types:
+      - created
+      - pubished
 
 permissions:
   contents: write
