@@ -64,5 +64,3 @@ jobs:
           FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
-
-
