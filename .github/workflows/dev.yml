@@ -2,9 +2,11 @@ name: Release Pipeline
 
 on:
   push:
-    tags:
-      - "*.*.*"
-      - "*.*.*-dev"
+    branches:
+      - main
+#    tags:
+#      - "*.*.*"
+#      - "*.*.*-dev"
 
 permissions:
   contents: write
@@ -31,3 +33,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          RELEASE_VERSION: "0.0.0-dev"
+#          FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
+          GIT_SHA: ${{ env.SHORT_SHA }}
+          GITHUB_ACTOR: ${{ github.actor }}
