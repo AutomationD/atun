@@ -30,6 +30,7 @@ release:
     name: atun
   draft: true
   replace_existing_draft: true
+  make_latest: false
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
