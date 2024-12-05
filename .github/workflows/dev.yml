@@ -32,9 +32,10 @@ jobs:
         run: sudo apt-get install -y gh
 
       - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh auth login --with-token
 
       - name: Delete existing release and tag
         run: |
