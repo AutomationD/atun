@@ -44,6 +44,8 @@ jobs:
       - name: Add tag
         run: |
           git tag -a 0.0.0-dev -m "Development release"
+          git config --global user.email "dmitry@atd.sh"
+          git config --global user.name "Dmitry Kireev"
           git push origin ${{ github.ref_name }}
 
       - name: Run GoReleaser
