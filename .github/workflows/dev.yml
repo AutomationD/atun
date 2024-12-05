@@ -63,6 +63,18 @@ jobs:
           FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
+
+
+
+      # Publish the release it only after build to minimize lack of artifact
+      - name: Delete existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ env.DEV_VERSION }}" --draft=false
+
+
+
 #
 #      # Delete the release it only after build to minimize lack of artifact
 #      - name: Delete existing release
