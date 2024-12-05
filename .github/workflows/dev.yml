@@ -36,11 +36,6 @@ jobs:
         run: sudo apt-get install -y gh
 
 
-      - name: Add tag
-        run: |
-          git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
-          git push origin ${{ github.ref_name }}
-
       - name: Build with GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -55,7 +50,7 @@ jobs:
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
 
-
+      # Delete the release it only after build to minimize lack of artifact
       - name: Delete existing release and tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,6 +61,13 @@ jobs:
           git config --global user.name "Dmitry Kireev"
           git tag -d "${{ env.DEV_VERSION }}" || echo "No tag to delete"
           git push origin :refs/tags/${{ env.DEV_VERSION }} || echo "No remote tag to delete"
+
+
+      - name: Add tag
+        run: |
+          git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
+          git push origin ${{ github.ref_name }}
+
 
       - name: Publish with GoReleaser
         uses: goreleaser/goreleaser-action@v6
