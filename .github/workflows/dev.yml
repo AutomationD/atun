@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 env:
-  DEV_VERSION: 0.0.0-dev
+  DEV_VERSION: 0.0.0
 
 jobs:
   goreleaser:
