@@ -20,7 +20,7 @@ import (
 
 var (
 	GitCommit string
-	Version   = "development"
+	Version   = "0.0.0"
 )
 
 func GetVersion() (ret string) {
@@ -35,7 +35,7 @@ func GetVersion() (ret string) {
 func FullVersionNumber() string {
 	var versionString bytes.Buffer
 
-	if Version == "development" {
+	if Version == "development" || Version == "0.0.0" {
 		return fmt.Sprintf("development %s", time.Now().Format("2006-01-02T15:04:05"))
 	}
 
