@@ -35,6 +35,20 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh
 
+      - name: Delete existing tag
+        run: |          
+          git config --global user.email "dmitry@atd.sh"
+          git config --global user.name "Dmitry Kireev"
+          git tag -d "${{ env.DEV_VERSION }}" || echo "No tag to delete"
+          git push origin :refs/tags/${{ env.DEV_VERSION }} || echo "No remote tag to delete"
+
+
+      - name: Add tag
+        run: |
+          git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
+          git push origin ${{ github.ref_name }}
+
+
 
       - name: Build with GoReleaser
         uses: goreleaser/goreleaser-action@v6
@@ -51,22 +65,11 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
 
       # Delete the release it only after build to minimize lack of artifact
-      - name: Delete existing release and tag
+      - name: Delete existing release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete "${{ env.DEV_VERSION }}" --yes || echo "No release to delete"
-
-          git config --global user.email "dmitry@atd.sh"
-          git config --global user.name "Dmitry Kireev"
-          git tag -d "${{ env.DEV_VERSION }}" || echo "No tag to delete"
-          git push origin :refs/tags/${{ env.DEV_VERSION }} || echo "No remote tag to delete"
-
-
-      - name: Add tag
-        run: |
-          git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
-          git push origin ${{ github.ref_name }}
 
 
       - name: Publish with GoReleaser
