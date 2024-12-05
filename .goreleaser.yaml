@@ -29,6 +29,7 @@ release:
     owner: automationd
     name: atun
   draft: true
+  overwrite: true
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
