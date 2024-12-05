@@ -28,10 +28,25 @@ jobs:
         run: |
           echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
 
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
+
+      - name: Authenticate GitHub CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Delete existing release and tag
+        run: |
+          gh release delete ${{ github.ref_name }} --yes || echo "No release to delete"
+          git tag -d ${{ github.ref_name }} || echo "No tag to delete"
+          git push origin :refs/tags/${{ github.ref_name }} || echo "No remote tag to delete"
+
       # Add 0.0.0-dev tag
       - name: Add tag
-        run: git tag -a 0.0.0-dev -m "Development release"
-        continue-on-error: true
+        run: |
+          git tag -a 0.0.0-dev -m "Development release"
+          git push origin ${{ github.ref_name }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
