@@ -28,24 +28,27 @@ release:
   github:
     owner: automationd
     name: atun
-  draft: true
+  draft: false
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
-#brews:
-#  - name: atun
-#    repository:
-#      owner: AutomationD
-#      name: homebrew-atun
-#    url_template: "https://github.com/automationd/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-#    commit_author:
-#      name: Dmitry Kireev
-#      email: dmitry@atd.sh
-#    homepage: "https://github.com/automationd/atun"
-#    description: "atun - Atun - AWS Tagged Tunnel"
-#    license: "Apache 2.0"
-#    test: |
-#      system "#{bin}/atun version"
-#    install: |
-#      bin.install "atun"
+brews:
+  - name: atun
+    alternative_names:
+      - "atun@{{ .Version }}"
+    repository:
+      owner: AutomationD
+      name: homebrew-tap
+    url_template: "https://github.com/automationd/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@atd.sh
+    directory: Formula
+    homepage: "https://github.com/automationd/atun"
+    description: "atun - Atun - AWS Tagged Tunnel"
+    license: "Apache 2.0"
+    test: |
+      system "#{bin}/atun version"
+    install: |
+      bin.install "atun"
