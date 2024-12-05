@@ -36,9 +36,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete ${{ github.ref_name }} --yes || echo "No release to delete"
-          git tag -d ${{ github.ref_name }} || echo "No tag to delete"
-          git push origin :refs/tags/${{ github.ref_name }} || echo "No remote tag to delete"
+          gh release delete "0.0.0-dev" --yes || echo "No release to delete"
+          git tag -d "0.0.0-dev" || echo "No tag to delete"
+          git push origin :refs/tags/0.0.0-dev || echo "No remote tag to delete"
 
       # Add 0.0.0-dev tag
       - name: Add tag
