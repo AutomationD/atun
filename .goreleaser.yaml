@@ -38,6 +38,7 @@ brews:
     repository:
       owner: AutomationD
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     url_template: "https://github.com/automationd/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
       name: Dmitry Kireev
