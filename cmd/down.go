@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"github.com/automationd/atun/internal/aws"
 	"github.com/automationd/atun/internal/config"
 	"github.com/automationd/atun/internal/logger"
 	"github.com/automationd/atun/internal/ssh"
@@ -33,6 +34,8 @@ var downCmd = &cobra.Command{
 		//}
 
 		bastionHost = cmd.Flag("bastion").Value.String()
+
+		aws.InitAWSClients(config.App)
 
 		// If bastion host is not provided, get the first running instance based on the discovery tag (atun.io/version)
 		if bastionHost == "" {

@@ -19,6 +19,7 @@ var versionCmd = &cobra.Command{
 	Long:  `Print version`,
 	Run: func(cmd *cobra.Command, args []string) {
 		pterm.Printfln("Version: %s", version.FullVersionNumber())
+		version.CheckLatestRelease()
 	},
 }
 

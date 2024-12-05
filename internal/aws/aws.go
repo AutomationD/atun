@@ -8,15 +8,43 @@ package aws
 import (
 	"fmt"
 	"github.com/automationd/atun/internal/config"
+	"github.com/automationd/atun/internal/constraints"
 	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/pterm/pterm"
+	"os"
 	"strings"
 	"time"
 )
+
+func InitAWSClients(app *config.Atun) {
+
+	// Ensure all constraints are met
+	if err := constraints.CheckConstraints(
+		constraints.WithAWSProfile(),
+		constraints.WithAWSRegion(),
+	); err != nil {
+		pterm.Error.Println("Failed to check constraints:", err)
+		os.Exit(1)
+	}
+
+	// Init AWS Session (probably should be moved to a separate function)
+	sess, err := GetSession(&SessionConfig{
+		Region:      app.Config.AWSRegion,
+		Profile:     app.Config.AWSProfile,
+		EndpointUrl: app.Config.EndpointUrl,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	logger.Debug("AWS Session initialized")
+	app.Session = sess
+}
 
 func NewEC2Client() (*ec2.EC2, error) {
 	logger.Debug("Creating EC2 client.", "profile", config.App.Config.AWSProfile, "awsRegion", config.App.Config.AWSRegion)

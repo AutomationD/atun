@@ -12,7 +12,18 @@ Be ready that commits might be squashed/reset and tags might be rewritten until 
 
 ## Quickstart
 
-For now, you'd have to build it from scratch. Adding a release process soon.
+### Install from Homebrew
+```bash
+brew tap automationd/tap
+brew install atun
+```
+
+### Install from Homebrew (dev version)
+```bash
+brew tap automationd/tap
+brew install atun --build-from-source
+```
+
 ![demo.gif](demo.gif)
 
 ## Features
@@ -66,3 +77,5 @@ atun down
 ```bash
 atun status
 ```
+
+##

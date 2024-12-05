@@ -41,6 +41,8 @@ var upCmd = &cobra.Command{
 
 		logger.Debug("All constraints satisfied")
 
+		aws.InitAWSClients(config.App)
+
 		// Get the bastion host ID from the command line
 		bastionHost = cmd.Flag("bastion").Value.String()
 

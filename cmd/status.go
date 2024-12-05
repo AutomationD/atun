@@ -48,6 +48,8 @@ to quickly create a Cobra application.`,
 
 		dt := pterm.DefaultTable
 
+		aws.InitAWSClients(config.App)
+
 		pterm.DefaultSection.Println("Status")
 		_ = dt.WithData(pterm.TableData{
 			{"AWS_ACCOUNT", aws.GetAccountId()},

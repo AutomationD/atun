@@ -7,9 +7,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/automationd/atun/internal/aws"
 	"github.com/automationd/atun/internal/config"
-	"github.com/automationd/atun/internal/constraints"
 	"github.com/automationd/atun/internal/logger"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
@@ -101,28 +99,28 @@ func initializeAtun() {
 	if err != nil {
 		panic(err)
 	}
-
-	// Ensure all constraints are met
-	if err := constraints.CheckConstraints(
-		constraints.WithAWSProfile(),
-		constraints.WithAWSRegion(),
-	); err != nil {
-		pterm.Error.Println("Failed to check constraints:", err)
-		os.Exit(1)
-	}
-
-	// Init AWS Session (probably should be moved to a separate function)
-	sess, err := aws.GetSession(&aws.SessionConfig{
-		Region:      config.App.Config.AWSRegion,
-		Profile:     config.App.Config.AWSProfile,
-		EndpointUrl: config.App.Config.EndpointUrl,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	logger.Debug("AWS Session initialized")
-	config.App.Session = sess
+	//
+	//// Ensure all constraints are met
+	//if err := constraints.CheckConstraints(
+	//	constraints.WithAWSProfile(),
+	//	constraints.WithAWSRegion(),
+	//); err != nil {
+	//	pterm.Error.Println("Failed to check constraints:", err)
+	//	os.Exit(1)
+	//}
+	//
+	//// Init AWS Session (probably should be moved to a separate function)
+	//sess, err := aws.GetSession(&aws.SessionConfig{
+	//	Region:      config.App.Config.AWSRegion,
+	//	Profile:     config.App.Config.AWSProfile,
+	//	EndpointUrl: config.App.Config.EndpointUrl,
+	//})
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//logger.Debug("AWS Session initialized")
+	//config.App.Session = sess
 
 	// Set directory for per-env-per-profile tunnel/cdk
 	config.App.Config.TunnelDir = filepath.Join(config.App.Config.AppDir, fmt.Sprintf("%s-%s", config.App.Config.Env, config.App.Config.AWSProfile))

@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/automationd/atun/internal/aws"
 	"github.com/automationd/atun/internal/config"
 	"github.com/automationd/atun/internal/infra"
 	"github.com/automationd/atun/internal/logger"
@@ -20,6 +21,7 @@ var deleteCmd = &cobra.Command{
 		// Add check for --force flag
 
 		// Add survey to check if the user is sure to destroy the stack
+		aws.InitAWSClients(config.App)
 
 		err := infra.DestroyCDKTF(config.App.Config)
 		if err != nil {

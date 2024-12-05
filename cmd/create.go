@@ -72,6 +72,8 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
+		aws.InitAWSClients(config.App)
+
 		// Step 5: Apply the configuration using CDKTF
 
 		err = infra.ApplyCDKTF(config.App.Config)
