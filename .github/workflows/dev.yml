@@ -57,11 +57,11 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean -f .goreleaser.dev.yml
+          args: release --clean -f .goreleaser.dev.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           RELEASE_VERSION: "${{ env.SHORT_SHA }}"
-          FURY_TOKEN: ${{ secrets.FURY_TOKEN }}
+          FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
