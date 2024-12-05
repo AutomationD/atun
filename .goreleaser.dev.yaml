@@ -15,7 +15,7 @@ builds:
       - amd64
 #      - arm64
     ldflags:
-      - -s -w -X 'github.com/hazelops/ize/internal/version.Version={{.Version}}' -X 'github.com/hazelops/ize/internal/version.GitCommit={{.Env.SHORT_SHA}}'
+      - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
 
 archives:
   - id: release_archive
