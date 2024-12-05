@@ -34,7 +34,8 @@ checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
 brews:
-  - name: atun-{{ .Version }}
+  # This build will be moved to a separate release build
+  - name: atun
     repository:
       owner: AutomationD
       name: homebrew-atun
@@ -52,3 +53,62 @@ brews:
       system "#{bin}/atun --version"
     install: |
       bin.install "atun"
+
+  - name: atun@{{ .Version }}
+    repository:
+      owner: AutomationD
+      name: homebrew-atun
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    directory: Formula
+    url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@atd.sh
+    homepage: "https://github.com/AutomationD/atun"
+    description: "atun.io is a simple SSM/SSH tunnel manager"
+    license: "Apache 2.0"
+    test: |
+      system "#{bin}/atun --version"
+    install: |
+      bin.install "atun"
+
+  - name: atun-dev
+    repository:
+      owner: AutomationD
+      name: homebrew-atun
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    directory: Formula
+    url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@atd.sh
+    homepage: "https://github.com/AutomationD/atun"
+    description: "atun.io is a simple SSM/SSH tunnel manager"
+    license: "Apache 2.0"
+    test: |
+      system "#{bin}/atun --version"
+    install: |
+      bin.install "atun"
+
+  - name: atun-dev@{{ .Version }}
+    repository:
+      owner: AutomationD
+      name: homebrew-atun
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    directory: Formula
+    url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@atd.sh
+    homepage: "https://github.com/AutomationD/atun"
+    description: "atun.io is a simple SSM/SSH tunnel manager"
+    license: "Apache 2.0"
+    test: |
+      system "#{bin}/atun --version"
+    install: |
+      bin.install "atun"
+
+
