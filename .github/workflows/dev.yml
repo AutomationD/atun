@@ -37,15 +37,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete "0.0.0-dev" --yes || echo "No release to delete"
+          
+          git config --global user.email "dmitry@atd.sh"
+          git config --global user.name "Dmitry Kireev"
           git tag -d "0.0.0-dev" || echo "No tag to delete"
           git push origin :refs/tags/0.0.0-dev || echo "No remote tag to delete"
 
       # Add 0.0.0-dev tag
       - name: Add tag
         run: |
-          git tag -a 0.0.0-dev -m "Development release"
-          git config --global user.email "dmitry@atd.sh"
-          git config --global user.name "Dmitry Kireev"
+          git tag -a 0.0.0-dev -m "Development release"          
           git push origin ${{ github.ref_name }}
 
       - name: Run GoReleaser
