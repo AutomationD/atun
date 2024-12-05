@@ -34,7 +34,7 @@ checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
 brews:
-  # This build will be moved to a separate release build
+  # This build will be moved to a separate release build when things get stable
   - name: atun
     repository:
       owner: AutomationD
@@ -49,11 +49,17 @@ brews:
     homepage: "https://github.com/AutomationD/atun"
     description: "atun.io is a simple SSM/SSH tunnel manager"
     license: "Apache 2.0"
+    conflicts:
+      - atun-dev
+      - atun-dev@{{ .Version }}
+
+
     test: |
       system "#{bin}/atun --version"
     install: |
       bin.install "atun"
 
+  # This build will be moved to a separate release build when things get stable
   - name: atun@{{ .Version }}
     repository:
       owner: AutomationD
@@ -68,6 +74,9 @@ brews:
     homepage: "https://github.com/AutomationD/atun"
     description: "atun.io is a simple SSM/SSH tunnel manager"
     license: "Apache 2.0"
+    conflicts:
+      - atun-dev
+      - atun-dev@{{ .Version }}
     test: |
       system "#{bin}/atun --version"
     install: |
@@ -87,6 +96,9 @@ brews:
     homepage: "https://github.com/AutomationD/atun"
     description: "atun.io is a simple SSM/SSH tunnel manager"
     license: "Apache 2.0"
+    conflicts:
+      - atun
+      - atun@{{ .Version }}
     test: |
       system "#{bin}/atun --version"
     install: |
