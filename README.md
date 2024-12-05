@@ -25,7 +25,7 @@ brew install atun --build-from-source
 ```
 If the dev version has cached old metadata (b/c version is the same), use this command:
 ```shell
-brew fetch --force atun
+brew update && brew fetch --force atun && brew reinstall atun
 ```
 
 ![demo.gif](demo.gif)

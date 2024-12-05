@@ -19,13 +19,9 @@ import (
 // statusCmd represents the status command
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Show status of the tunnel and current environment",
+	Long: `Show status of the tunnel and current environment.
+	This is also useful for troubleshooting`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		//// Define symbols for boolean values
 		//checkMark := "✔"
