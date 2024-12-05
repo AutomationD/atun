@@ -48,8 +48,6 @@ jobs:
           git tag -a ${{ env.DEV_VERSION }} -m "Development release"          
           git push origin ${{ github.ref_name }}
 
-
-
       - name: Build with GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -67,7 +65,7 @@ jobs:
 
 
       # Publish the release it only after build to minimize lack of artifact
-      - name: Delete existing release
+      - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
