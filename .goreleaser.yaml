@@ -10,12 +10,12 @@ builds:
     goos:
       - linux
 #      - darwin
-#      - windows # disabled for now
+#      - windows
     goarch:
       - amd64
 #      - arm64
     ldflags:
-      - -s -w -X version.version={{.Version}}
+      - -s -w -X 'github.com/hazelops/ize/internal/version.Version={{.Version}}' -X 'github.com/hazelops/ize/internal/version.GitCommit={{.Env.SHORT_SHA}}'
 
 archives:
   - id: release_archive
@@ -26,7 +26,7 @@ archives:
 
 release:
   github:
-    owner: automationd
+    owner: AutomationD
     name: atun
   draft: true
 
@@ -37,17 +37,15 @@ brews:
   - name: atun
     repository:
       owner: AutomationD
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    url_template: "https://github.com/automationd/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+      name: homebrew-atun
+    url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
       name: Dmitry Kireev
       email: dmitry@atd.sh
-    directory: Formula
-    homepage: "https://github.com/automationd/atun"
-    description: "atun - Atun - AWS Tagged Tunnel"
+    homepage: "https://github.com/AutomationD/atun"
+    description: "atun.io is a simple SSM/SSH tunnel manager"
     license: "Apache 2.0"
     test: |
-      system "#{bin}/atun version"
+      system "#{bin}/atun --version"
     install: |
       bin.install "atun"
