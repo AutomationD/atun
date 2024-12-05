@@ -28,7 +28,8 @@ release:
   github:
     owner: AutomationD
     name: atun
-  draft: false
+  draft: true
+  replace_existing_draft: true
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"

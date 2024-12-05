@@ -55,7 +55,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: build --clean -f .goreleaser.dev.yaml
+          args: release --clean -f .goreleaser.dev.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
@@ -63,25 +63,25 @@ jobs:
           FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
-
-      # Delete the release it only after build to minimize lack of artifact
-      - name: Delete existing release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release delete "${{ env.DEV_VERSION }}" --yes || echo "No release to delete"
-
-
-      - name: Publish with GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --skip-validate -f .goreleaser.dev.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-          RELEASE_VERSION: "${{ env.SHORT_SHA }}"
-          FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
-          GIT_SHA: ${{ env.SHORT_SHA }}
-          GITHUB_ACTOR: ${{ github.actor }}
+#
+#      # Delete the release it only after build to minimize lack of artifact
+#      - name: Delete existing release
+#        env:
+#          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          gh release delete "${{ env.DEV_VERSION }}" --yes || echo "No release to delete"
+#
+#
+#      - name: Publish with GoReleaser
+#        uses: goreleaser/goreleaser-action@v6
+#        with:
+#          distribution: goreleaser
+#          version: "~> v2"
+#          args: release -f .goreleaser.dev.yaml
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+#          RELEASE_VERSION: "${{ env.SHORT_SHA }}"
+#          FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
+#          GIT_SHA: ${{ env.SHORT_SHA }}
+#          GITHUB_ACTOR: ${{ github.actor }}
