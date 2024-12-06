@@ -121,6 +121,7 @@ func initializeAtun() {
 
 	// Set directory for per-env-per-profile tunnel/cdk
 	config.App.Config.TunnelDir = filepath.Join(config.App.Config.AppDir, fmt.Sprintf("%s-%s", config.App.Config.Env, config.App.Config.AWSProfile))
+
 	logger.Debug("Tunnel directory set. Ensuring it exists", "tunnelDir", config.App.Config.TunnelDir)
 	err = os.MkdirAll(config.App.Config.TunnelDir, 0755)
 	if err != nil {

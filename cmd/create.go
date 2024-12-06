@@ -30,12 +30,15 @@ var createCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		// Step 1: Check if the configuration is loaded
+		// Check if the configuration is loaded
 		if config.App.Config != nil {
 			logger.Debug("Config exists. Checking Hosts Config")
+
+			// If config is not loaded, offer to create a new configuration using survey package
 			if len(config.App.Config.Hosts) == 0 {
 				logger.Debug(
 					"No hosts found in the configuration. Offering to create one")
+
 				err = buildHostConfig(config.App)
 				if err != nil {
 					logger.Error("Error creating host config: %v", err)
@@ -44,24 +47,9 @@ var createCmd = &cobra.Command{
 			}
 			// TODO: Check for Subnet ID and if not ask for them
 			logger.Debug("Hosts Config exists.", "hosts", config.App.Config.Hosts)
-
 		}
 
-		// TODO: Abstract this into a separte function since it's used in multiple places
-		// Get VPC ID from Subnet ID if it's not populated
-		if config.App.Config.BastionVPCID == "" {
-			logger.Debug("Getting VPC ID from Subnet ID", "Subnet ID", config.App.Config.BastionSubnetID)
-			config.App.Config.BastionVPCID, err = aws.GetVPCIDFromSubnet(config.App.Config.BastionSubnetID)
-			if err != nil {
-				logger.Fatal("Error getting VPC ID from Subnet ID", err)
-			}
-		}
-		logger.Debug("VPC ID", "VPC ID", config.App.Config.BastionVPCID)
-		// Step 2: If not loaded, offer to create a new configuration using survey package
-
-		// Step 3: When survey entry is complete - reload the configuration.
-
-		// Step 4: Verify all constraints are met
+		// Verify all constraints are met
 		if err := constraints.CheckConstraints(
 			constraints.WithSSMPlugin(),
 			constraints.WithAWSProfile(),
@@ -74,8 +62,18 @@ var createCmd = &cobra.Command{
 
 		aws.InitAWSClients(config.App)
 
-		// Step 5: Apply the configuration using CDKTF
+		// TODO: Abstract this into a separate function since it's used in multiple places
+		// Get VPC ID from Subnet ID if it's not populated
+		if config.App.Config.BastionVPCID == "" {
+			logger.Debug("Getting VPC ID from Subnet ID", "Subnet ID", config.App.Config.BastionSubnetID)
+			config.App.Config.BastionVPCID, err = aws.GetVPCIDFromSubnet(config.App.Config.BastionSubnetID)
+			if err != nil {
+				logger.Fatal("Error getting VPC ID from Subnet ID", "err", err)
+			}
+		}
+		logger.Debug("VPC ID", "VPC ID", config.App.Config.BastionVPCID)
 
+		// Apply the configuration using CDKTF
 		err = infra.ApplyCDKTF(config.App.Config)
 		if err != nil {
 			logger.Error("Error running CDKTF: %v\n", err)

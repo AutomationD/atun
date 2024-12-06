@@ -22,7 +22,7 @@ import (
 )
 
 func InitAWSClients(app *config.Atun) {
-
+	logger.Debug("Authenticating to AWS", "profile", app.Config.AWSProfile, "region", app.Config.AWSRegion)
 	// Ensure all constraints are met
 	if err := constraints.CheckConstraints(
 		constraints.WithAWSProfile(),

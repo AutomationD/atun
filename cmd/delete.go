@@ -21,6 +21,7 @@ var deleteCmd = &cobra.Command{
 		// Add check for --force flag
 
 		// Add survey to check if the user is sure to destroy the stack
+
 		aws.InitAWSClients(config.App)
 
 		err := infra.DestroyCDKTF(config.App.Config)

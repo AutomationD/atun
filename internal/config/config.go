@@ -111,8 +111,9 @@ func LoadConfig() error {
 	if viper.GetString("ENV") == "" {
 		if len(os.Getenv("ENV")) > 0 {
 			viper.SetDefault("ENV", os.Getenv("ENV"))
+		} else {
+			viper.SetDefault("ENV", "adhoc")
 		}
-		// No default intentionally to avoid confusion
 	}
 
 	// Use AWS_PROFILE env var as a default for viper AWS_PROFILE

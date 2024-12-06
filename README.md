@@ -63,9 +63,16 @@ At the moment it has two types of tags: Atun Version and Atun Host.
 | `atun.io/host/nutcorp.xxxxxx.0001.use0.cache.amazonaws.com`                    | `{"local":"26379","proto":"ssm","remote":6379}` | Describes host config and how to forward ports for ElastiCache Redis      |
 
 ## Usage
+There are two ways to use this tool: when an infra has a bastion with `atun.io` schema tags and when it doesn't have it yet.
+
+### Create a Bastion Host
+When an infra doesn't have a bastion host yet (let's say this is an adhoc connection), it's possible to create a bastion host with this tool.
+
+```shell
+atun create
+```
 
 ### Bring up a tunnel
-
 ```bash
 atun up
 ```
