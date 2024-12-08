@@ -9,6 +9,7 @@ package e2e
 
 import (
 	"context"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"log"
 	"os/exec"
@@ -38,9 +39,9 @@ func TestAtunLifecycle(t *testing.T) {
 	}
 
 	// 2. Setup AWS Config for LocalStack
-	endpoint, err := localstackContainer.Endpoint(ctx, "ec2")
+	endpoint, err := localstackContainer.PortEndpoint(ctx, "4566/tcp", "")
 	if err != nil {
-		t.Fatalf("Failed to fetch LocalStack EC2 endpoint: %v", err)
+		t.Fatalf("Failed to fetch LocalStack endpoint: %v", err)
 	}
 
 	awsConfig := &aws.Config{
@@ -60,8 +61,9 @@ func TestAtunLifecycle(t *testing.T) {
 	// 3. Run `atun create`
 	t.Log("Running `atun create`")
 	createCmd := exec.Command("atun", "create", "--aws-region", "us-east-1", "--endpoint", endpoint)
+	createOutput, err := createCmd.CombinedOutput()
 	if err := createCmd.Run(); err != nil {
-		t.Fatalf("`atun create` failed: %v", err)
+		logger.Fatal("Failed to run `atun create`", "output", string(createOutput))
 	}
 
 	// 4. Verify EC2 instance with tag exists
