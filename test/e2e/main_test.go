@@ -12,6 +12,7 @@ import (
 	"github.com/automationd/atun/internal/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"log"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -60,7 +61,8 @@ func TestAtunLifecycle(t *testing.T) {
 
 	// 3. Run `atun create`
 	t.Log("Running `atun create`")
-	createCmd := exec.Command("atun", "create", "--aws-region", "us-east-1", "--endpoint", endpoint)
+	createCmd := exec.Command("atun", "create", "--aws-region", "us-east-1")
+	createCmd.Env = append(os.Environ(), "AWS_ENDPOINT="+endpoint)
 	createOutput, err := createCmd.CombinedOutput()
 	if err := createCmd.Run(); err != nil {
 		logger.Fatal("Failed to run `atun create`", "output", string(createOutput))
