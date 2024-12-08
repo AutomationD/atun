@@ -26,10 +26,8 @@ jobs:
 #          - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup go-task
-        uses: pnorton5432/setup-task@v1
-        with:
-          task-version: 3.29.1
+      - name: Setup Task
+        uses: illbjorn/setup-taskfile@main
 
       - name: Install Go
         uses: actions/setup-go@v5

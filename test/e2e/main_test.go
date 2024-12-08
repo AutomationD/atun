@@ -1,8 +1,10 @@
+//go:build e2e
+// +build e2e
+
 /*
  * SPDX-License-Identifier: Apache-2.0
  * SPDX-FileCopyrightText: © 2024 Dmitry Kireev
  */
-
 package e2e
 
 import (
