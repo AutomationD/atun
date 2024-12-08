@@ -26,8 +26,11 @@ jobs:
 #          - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup Task
-        uses: illbjorn/setup-taskfile@main
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Go
         uses: actions/setup-go@v5
