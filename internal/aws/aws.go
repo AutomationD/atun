@@ -36,7 +36,7 @@ func InitAWSClients(app *config.Atun) {
 	sess, err := GetSession(&SessionConfig{
 		Region:      app.Config.AWSRegion,
 		Profile:     app.Config.AWSProfile,
-		EndpointUrl: app.Config.EndpointUrl,
+		EndpointUrl: app.Config.AWSEndpointUrl,
 	})
 	if err != nil {
 		panic(err)
@@ -46,14 +46,12 @@ func InitAWSClients(app *config.Atun) {
 	app.Session = sess
 }
 
-func NewEC2Client() (*ec2.EC2, error) {
-	logger.Debug("Creating EC2 client.", "profile", config.App.Config.AWSProfile, "awsRegion", config.App.Config.AWSRegion)
+func NewEC2Client(awsConfig aws.Config) (*ec2.EC2, error) {
+	logger.Debug("Creating EC2 client.", "AWSProfile", config.App.Config.AWSProfile, "awsRegion", config.App.Config.AWSRegion, "endpointURL", awsConfig.Endpoint)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: aws.String(config.App.Config.AWSRegion),
-		},
-		Profile: config.App.Config.AWSProfile,
+		Config:            awsConfig,
+		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
 		return nil, err
@@ -64,12 +62,9 @@ func NewEC2Client() (*ec2.EC2, error) {
 	return ec2Client, nil
 }
 
-func NewSTSClient() (*sts.STS, error) {
+func NewSTSClient(awsConfig aws.Config) (*sts.STS, error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: aws.String(config.App.Config.AWSRegion),
-		},
-		Profile: config.App.Config.AWSProfile,
+		Config: awsConfig,
 	})
 	if err != nil {
 		return nil, err
@@ -77,13 +72,13 @@ func NewSTSClient() (*sts.STS, error) {
 
 	stsClient := sts.New(sess)
 
-	logger.Debug("Created STS client with profile %s and region %s", config.App.Config.AWSProfile, config.App.Config.AWSRegion)
+	logger.Debug("Created STS client", "AWSProfile", config.App.Config.AWSProfile, "AWSRegion", config.App.Config.AWSRegion)
 	return stsClient, nil
 }
 
 // ListInstancesWithTag returns a list of EC2 instances with a specific tag
 func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
-	ec2Client, err := NewEC2Client()
+	ec2Client, err := NewEC2Client(*config.App.Session.Config)
 	if err != nil {
 		logger.Error("Failed to create EC2 client", "error", err)
 		return nil, err
@@ -127,7 +122,7 @@ func ListInstancesWithTags(tags map[string]string) ([]*ec2.Instance, error) {
 }
 
 func GetInstanceTags(instanceID string) (map[string]string, error) {
-	ec2Client, err := NewEC2Client()
+	ec2Client, err := NewEC2Client(*config.App.Session.Config)
 	if err != nil {
 		logger.Error("Failed to create EC2 client", "error", err)
 		return nil, err
@@ -161,7 +156,7 @@ func GetInstanceTags(instanceID string) (map[string]string, error) {
 }
 
 func GetAccountId() string {
-	stsClient, err := NewSTSClient()
+	stsClient, err := NewSTSClient(*config.App.Session.Config)
 	if err != nil {
 		logger.Error("Error creating STS client", "error", err)
 		return ""
@@ -179,10 +174,14 @@ func GetAccountId() string {
 func SendSSHPublicKey(instanceID string, publicKey string) error {
 	// This command is executed in the bastion host and it checks if our public publicKey is present. If it's not it uploads it to the authorized_keys file.
 	command := fmt.Sprintf(
-
-		`grep -qR "%s" /home/ec2-user/.ssh/authorized_keys || echo "%s" | tee -a /home/ec2-user/.ssh/authorized_keys`,
+		`mkdir -p /home/ec2-user/.ssh/ && touch /home/ec2-user/.ssh/authorized_keys && grep -qR "%s" /home/ec2-user/.ssh/authorized_keys || echo "%s" | tee -a /home/ec2-user/.ssh/authorized_keys`,
 		strings.TrimSpace(publicKey), strings.TrimSpace(publicKey),
 	)
+
+	//command := fmt.Sprintf(
+	//	`whoami`,
+	//)
+
 	//command := `whoami`
 
 	logger.Debug("Sending command", "command", command)
@@ -208,7 +207,7 @@ func SendSSHPublicKey(instanceID string, publicKey string) error {
 			CommandId:  aws.String(commandID),
 			InstanceId: aws.String(instanceID),
 		})
-		if err == nil && *output.Status == ssm.CommandInvocationStatusSuccess {
+		if err == nil && *output.Status == ssm.CommandInvocationStatusSuccess && output.ResponseCode != nil {
 			break
 		}
 		time.Sleep(2 * time.Second)
@@ -217,10 +216,20 @@ func SendSSHPublicKey(instanceID string, publicKey string) error {
 		return fmt.Errorf("can't get command invocation: %w", err)
 	}
 
-	logger.Debug("Command output", "stdout", *output.StandardOutputContent, "stderr", *output.StandardErrorContent, "exitCode", *output.ResponseCode)
+	//
 
-	if *output.ResponseCode != 0 {
-		return fmt.Errorf("command failed with exit code %d: %s", *output.ResponseCode, *output.StandardErrorContent)
+	// Separate success criteria localstack ssm implementation bug where ResponseCode == nil)
+	if strings.Contains(config.App.Config.AWSEndpointUrl, "localhost") || strings.Contains(config.App.Config.AWSEndpointUrl, "127.0.0.1") {
+		if *output.Status != "Success" {
+			return fmt.Errorf("command failed %s: %s, ", *output.StandardOutputContent, *output.StandardErrorContent)
+		}
+
+		return nil
+	}
+
+	// Non-localstack success criteria
+	if *output.ResponseCode != 0 && *output.Status != "Success" {
+		return fmt.Errorf("command failed with exit code %d: %s, ", *output.ResponseCode, *output.StandardErrorContent)
 	}
 
 	return nil
@@ -228,10 +237,12 @@ func SendSSHPublicKey(instanceID string, publicKey string) error {
 
 // GetVPCIDFromSubnet returns the VPC ID for a given subnet ID
 func GetVPCIDFromSubnet(subnetID string) (string, error) {
-	ec2Client, err := NewEC2Client()
+	ec2Client, err := NewEC2Client(*config.App.Session.Config)
 	if err != nil {
 		return "", err
 	}
+
+	logger.Debug("Getting VPC ID for subnet", "subnetID", subnetID, "endpoint", ec2Client.Endpoint)
 
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: []*string{aws.String(subnetID)},

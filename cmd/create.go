@@ -71,7 +71,7 @@ var createCmd = &cobra.Command{
 				logger.Fatal("Error getting VPC ID from Subnet ID", "err", err)
 			}
 		}
-		logger.Debug("VPC ID", "VPC ID", config.App.Config.BastionVPCID)
+		logger.Debug("Obtained VPC ID from the Subnet ID", "BastionVPCID", config.App.Config.BastionVPCID)
 
 		// Apply the configuration using CDKTF
 		err = infra.ApplyCDKTF(config.App.Config)

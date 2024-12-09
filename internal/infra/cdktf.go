@@ -117,6 +117,13 @@ func createStack(c *config.Config) {
 
 	logger.Debug("All constraints satisfied")
 
+	// Override the default ami if one is provided to atun
+	bastionHostAmi := ""
+	if config.App.Config.BastionHostAMI != "" {
+		bastionHostAmi = config.App.Config.BastionHostAMI
+	}
+
+	// TODO: Add ability to specify other modules
 	terraformVariablesModules := map[string]interface{}{
 		"env":                 config.App.Config.Env,
 		"name":                config.App.Config.BastionInstanceName,
@@ -125,6 +132,7 @@ func createStack(c *config.Config) {
 		"private_subnets":     []string{config.App.Config.BastionSubnetID},
 		"allowed_cidr_blocks": []string{"0.0.0.0/0"},
 		"instance_type":       config.App.Config.AWSInstanceType,
+		"instance_ami":        bastionHostAmi,
 		"vpc_id":              config.App.Config.BastionVPCID,
 		"tags":                tags,
 	}

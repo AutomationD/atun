@@ -31,13 +31,14 @@ type Config struct {
 	AWSProfile               string
 	AWSRegion                string
 	AWSKeyPair               string
+	AWSEndpointUrl           string
 	AWSInstanceType          string
-	EndpointUrl              string
 	ConfigFile               string
 	BastionVPCID             string
 	BastionSubnetID          string
 	BastionHostID            string
 	BastionInstanceName      string
+	BastionHostAMI           string
 	AppDir                   string
 	TunnelDir                string
 	LogLevel                 string
@@ -132,6 +133,14 @@ func LoadConfig() error {
 		// No default intentionally to avoid confusion
 	}
 
+	// Use AWS_ENDPOINT_URL env var as a default for viper AWS_ENDPOINT_URL
+	if viper.GetString("AWS_ENDPOINT_URL") == "" {
+		if len(os.Getenv("AWS_ENDPOINT_URL")) > 0 {
+			viper.SetDefault("AWS_ENDPOINT_URL", os.Getenv("AWS_ENDPOINT_URL"))
+		}
+		// No default intentionally to avoid confusion
+	}
+
 	// Set Default Values if none are set
 	viper.SetDefault("SSH_KEY_PATH", filepath.Join(homeDir, ".ssh", "id_rsa"))
 	viper.SetDefault("SSH_STRICT_HOST_KEY_CHECKING", true)
@@ -152,10 +161,12 @@ func LoadConfig() error {
 			AWSRegion:                viper.GetString("AWS_REGION"),
 			AWSKeyPair:               viper.GetString("AWS_KEY_PAIR"),
 			AWSInstanceType:          viper.GetString("AWS_INSTANCE_TYPE"),
+			AWSEndpointUrl:           viper.GetString("AWS_ENDPOINT_URL"),
 			BastionVPCID:             viper.GetString("BASTION_VPC_ID"),
 			BastionSubnetID:          viper.GetString("BASTION_SUBNET_ID"),
 			BastionHostID:            viper.GetString("BASTION_HOST_ID"),
 			BastionInstanceName:      viper.GetString("BASTION_INSTANCE_NAME"),
+			BastionHostAMI:           viper.GetString("BASTION_HOST_AMI"),
 			ConfigFile:               viper.ConfigFileUsed(),
 			AppDir:                   appDir,
 			LogLevel:                 viper.GetString("LOG_LEVEL"),

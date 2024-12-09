@@ -7,6 +7,7 @@ package aws
 
 import (
 	"fmt"
+	"github.com/automationd/atun/internal/logger"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -35,21 +36,22 @@ type SessionConfig struct {
 func GetSession(c *SessionConfig) (*session.Session, error) {
 	upd := false
 
-	config := aws.NewConfig().WithRegion(c.Region).WithCredentials(credentials.NewSharedCredentials("", c.Profile)).WithEndpoint(c.EndpointUrl)
-
-	if len(c.EndpointUrl) > 0 {
-		logrus.Debug(fmt.Sprintf("Session established. Endpoint: %s", c.EndpointUrl))
-	} else {
-		logrus.Debug(fmt.Sprintf("Session established with a default endpoint"))
+	// Check if the env var is set and if not set it to the default value. (Maybe there is a better way to do this?)
+	credFilePath := os.Getenv("AWS_SHARED_CREDENTIALS_FILE")
+	if credFilePath == "" {
+		credFilePath = ""
 	}
 
-	//
-	//if len(c.EndpointUrl) > 0 {
-	//	// If EndpointUrl is set to a non-default value specify it
-	//
-	//} else {
-	//	config = aws.NewConfig().WithRegion(c.Region).WithCredentials(credentials.NewSharedCredentials("", c.Profile))
-	//}
+	var config *aws.Config
+
+	if c.EndpointUrl != "" {
+		config = aws.NewConfig().WithRegion(c.Region).WithCredentials(credentials.NewSharedCredentials(credFilePath, c.Profile)).WithEndpoint(c.EndpointUrl)
+		logrus.Debug(fmt.Sprintf("Session established. Endpoint: %s", c.EndpointUrl))
+	} else {
+		config = aws.NewConfig().WithRegion(c.Region).WithCredentials(credentials.NewSharedCredentials("", c.Profile))
+		logrus.Debug(fmt.Sprintf("Session established with a default endpoint"))
+
+	}
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: *config,
@@ -57,21 +59,23 @@ func GetSession(c *SessionConfig) (*session.Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	iamSess := iam.New(sess)
+	logger.Debug("Authenticating to AWS", "profile", c.Profile, "region", c.Region, "endpointURL", iamSess.Endpoint, "credFilePath", credFilePath, "iamSess", iamSess)
 
-	devices, err := iam.New(sess).ListMFADevices(&iam.ListMFADevicesInput{})
+	devices, err := iamSess.ListMFADevices(&iam.ListMFADevicesInput{})
 	if aerr, ok := err.(awserr.Error); ok {
 		switch aerr.Code() {
 		case "SharedCredsLoad":
 			logrus.Error(err)
 			return nil, fmt.Errorf("AWS profile is not valid (used `%s`). Please set correct AWS_PROFILE via AWS_PROFILE env var, --aws-profile flag or aws_profile config entry in atun.toml", c.Profile)
 		default:
-			// Error only if it's not a localhost endpoint
-			if !(strings.Contains(c.EndpointUrl, "localhost") || strings.Contains(c.EndpointUrl, "127.0.0.1")) {
+			// If the endpoint is localhost (LocalStack) then it's not an error
+			if !(strings.Contains(iamSess.Endpoint, "localhost") || strings.Contains(iamSess.Endpoint, "127.0.0.1")) {
 				// If endpoint is not related to LocalStack then it's an error
 				return nil, err
 			}
 
-			logrus.Debug("[NO MFA] Using Endpoint: ", c.EndpointUrl)
+			logrus.Debug("[NO MFA] Using Endpoint: ", iamSess.Endpoint)
 		}
 	}
 
