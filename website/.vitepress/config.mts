@@ -12,11 +12,7 @@ export default defineConfig({
   //     }
   //   `]
   // ],
-  rewrites: {
-    'v:version*': 'https://github.com/AutomationD/atun/releases/tag/v:version*',
-    'release/:version*': 'https://github.com/AutomationD/atun/releases/tag/:version*',
 
-  },
   appearance: false,
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
