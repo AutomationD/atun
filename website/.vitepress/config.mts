@@ -13,10 +13,8 @@ export default defineConfig({
   //   `]
   // ],
   rewrites: {
-    'release/:version': {
-      replace: (match: { version: string }) =>
-          `https://github.com/AutomationD/atun/releases/tag/${match.version}`
-    }
+    'release/:version': 'https://github.com/AutomationD/atun/releases/tag/:version',
+
   },
   appearance: false,
   themeConfig: {
