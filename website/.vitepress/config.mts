@@ -13,7 +13,8 @@ export default defineConfig({
   //   `]
   // ],
   rewrites: {
-    'release/:version': 'https://github.com/AutomationD/atun/releases/tag/:version',
+    'v:version*': 'https://github.com/AutomationD/atun/releases/tag/v:version*',
+    'release/:version*': 'https://github.com/AutomationD/atun/releases/tag/:version*',
 
   },
   appearance: false,
