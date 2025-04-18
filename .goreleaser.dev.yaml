@@ -23,8 +23,6 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
-      - windows
     goarch:
       - amd64
       - arm64
@@ -130,7 +128,7 @@ nfpms:
   - id: alpine
     package_name: atun
     file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    builds:
+    builds_entries:
       - musl
     formats:
       - apk
