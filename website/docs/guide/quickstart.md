@@ -10,6 +10,19 @@ brew tap automationd/tap
 brew install atun
 ```
 
+### Alpine Linux
+```bash
+# Add the repository key
+curl -L https://atun.io/repo/apk/atun@atd.sh-63e7522c.rsa.pub -o /etc/apk/keys/atun@atd.sh-63e7522c.rsa.pub
+
+# Add Atun repository
+echo "https://atun.io/repo/apk" >> /etc/apk/repositories
+
+# Install Atun
+apk update
+apk add atun
+```
+
 ### Windows
 ```powershell
 scoop bucket add automationd https://github.com/automationd/scoop-bucket.git

@@ -39,6 +39,41 @@ jobs:
         run: npm ci
         working-directory: website
 
+      - name: Setup Alpine Repository Structure
+        run: |
+          mkdir -p website/.vitepress/dist/repo/apk/{x86_64,aarch64}
+          # Copy the latest .apk files from the release
+          for arch in x86_64 aarch64; do
+            case $arch in
+              x86_64) goarch="amd64" ;;
+              aarch64) goarch="arm64" ;;
+            esac
+            
+            # Download the latest release apk
+            gh release download --repo AutomationD/atun --pattern "*linux_${goarch}.apk" --dir /tmp
+            cp /tmp/*linux_${goarch}.apk website/.vitepress/dist/repo/apk/$arch/
+          done
+
+      - name: Generate Alpine Repository Index
+        run: |
+          # Install Alpine tools
+          sudo apk add --no-cache alpine-sdk
+          
+          # Generate repository signing key if not exists
+          if [ ! -f .alpine/atun.rsa ]; then
+            mkdir -p .alpine
+            openssl genrsa -out .alpine/atun.rsa 2048
+            openssl rsa -in .alpine/atun.rsa -pubout -out website/.vitepress/dist/repo/apk/atun@atd.sh-63e7522c.rsa.pub
+          fi
+          
+          # Sign and generate index for each architecture
+          for arch in x86_64 aarch64; do
+            cd website/.vitepress/dist/repo/apk/$arch
+            apk index -o APKINDEX.tar.gz *.apk
+            abuild-sign -k ~/.alpine/atun.rsa APKINDEX.tar.gz
+            cd -
+          done
+
       - name: Build
         run: |
           npm run docs:build

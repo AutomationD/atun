@@ -3,7 +3,7 @@ version: 2
 project_name: atun
 
 builds:
-  - id: atun
+  - id: glibc
     main: ./main.go
     env:
       - CGO_ENABLED=0
@@ -14,6 +14,22 @@ builds:
     goarch:
       - amd64
       - arm64
+    ldflags:
+      - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
+
+  - id: musl
+    main: ./main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    tags:
+      - musl
     ldflags:
       - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
 
@@ -109,3 +125,22 @@ scoops:
       name: scoop-bucket
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+nfpms:
+  - id: alpine
+    package_name: atun
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    builds:
+      - musl
+    formats:
+      - apk
+    vendor: Dmitry Kireev
+    homepage: https://atun.io
+    maintainer: Dmitry Kireev <dmitry@atd.sh>
+    description: atun.io is a simple SSM/SSH tunnel manager
+    license: Apache 2.0
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/atun/LICENSE
+      - src: ./README.md
+        dst: /usr/share/doc/atun/README.md

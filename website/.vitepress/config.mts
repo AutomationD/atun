@@ -5,13 +5,20 @@ export default defineConfig({
   title: "Atun",
   description: "Seamless, IAM-native access to private RDS, Elasticache, DynamoDB, and more. No VPNs, no SSH agents, no friction.",
   srcDir: 'docs',
-  // head: [
-  //   ['style', {}, `
-  //     :root {
-  //       --vp-c-bg: #009DFF !important;
-  //     }
-  //   `]
-  // ],
+  outDir: '.vitepress/dist',
+  
+  // Ensure Alpine repository files are copied as-is
+  assetsDir: 'repo',
+  vite: {
+    build: {
+      rollupOptions: {
+        input: {
+          main: 'index.html',
+          apk: 'repo/apk/index.html'
+        }
+      }
+    }
+  },
 
   appearance: false,
   themeConfig: {
@@ -54,7 +61,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under Apache 2.0 License.',
-      copyright: 'Copyright © 2025 Dmitry Kireev'
+      copyright: 'Copyright 2025 Dmitry Kireev'
     }
   }
 })
