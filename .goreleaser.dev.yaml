@@ -127,7 +127,7 @@ scoops:
 nfpms:
   - id: alpine
     package_name: atun
-    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .ArtifactID }}_{{ .Arch }}"
     builds_entries:
       - musl
     formats:
