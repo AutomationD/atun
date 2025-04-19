@@ -32,14 +32,14 @@ builds:
       - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
 
 archives:
-  - id: glibc_archive
+  - id: glibc
     builds: [glibc]
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
       - README.md
 
-  - id: musl_archive
+  - id: musl
     builds: [musl]
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}-musl"
     files:
@@ -60,7 +60,7 @@ checksum:
 brews:
   - name: atun-dev
     ids:
-      - glibc_archive
+      - glibc
     repository:
       owner: AutomationD
       name: homebrew-tap
@@ -83,7 +83,7 @@ brews:
 
   - name: atun-dev@{{ .Version }}
     ids:
-      - glibc_archive
+      - glibc
     repository:
       owner: AutomationD
       name: homebrew-tap
@@ -135,9 +135,9 @@ scoops:
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
 
 nfpms:
-  - id: alpine_musl
+  - id: musl
     package_name: atun
-    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-{{.Id }}"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-musl"
     ids:
       - musl
     formats:
@@ -153,11 +153,11 @@ nfpms:
       - src: ./README.md
         dst: /usr/share/doc/atun/README.md
 
-  - id: linux
+  - id: glibc
     builds:
       - glibc
     package_name: atun
-    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-{{.Id }}"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     vendor: AutomationD
     homepage: https://github.com/AutomationD/atun
     maintainer: Dmitry Kireev <dmitry@atd.sh>
