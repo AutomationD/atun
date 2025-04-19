@@ -34,14 +34,14 @@ builds:
 archives:
   - id: glibc_archive
     builds: [glibc]
-    name_template: "{{ .ProjectName }}-glibc-{{ .Os }}-{{ .Arch }}"
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
       - README.md
 
   - id: musl_archive
     builds: [musl]
-    name_template: "{{ .ProjectName }}-musl-{{ .Os }}-{{ .Arch }}"
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}-musl"
     files:
       - LICENSE
       - README.md
@@ -59,7 +59,8 @@ checksum:
 
 brews:
   - name: atun-dev
-    ids: [glibc_archive]
+    ids:
+      - glibc_archive
     repository:
       owner: AutomationD
       name: homebrew-tap
@@ -81,7 +82,8 @@ brews:
       bin.install "atun"
 
   - name: atun-dev@{{ .Version }}
-    ids: [glibc_archive]
+    ids:
+      - glibc_archive
     repository:
       owner: AutomationD
       name: homebrew-tap
@@ -135,7 +137,7 @@ scoops:
 nfpms:
   - id: alpine
     package_name: atun
-    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_musl_{{ .Arch }}"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-musl"
     ids:
       - musl
     formats:
@@ -154,7 +156,7 @@ nfpms:
   - id: musl-packages
     builds: [musl]
     package_name: atun
-    file_name_template: "{{ .ProjectName }}-musl-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-musl"
     vendor: AutomationD
     homepage: https://github.com/AutomationD/atun
     maintainer: Dmitry Kireev <dmitry@atd.sh>
