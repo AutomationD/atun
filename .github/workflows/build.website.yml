@@ -1,0 +1,106 @@
+name: Website Build
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Dev Build"
+      - "Release Build"
+    types:
+      - completed   # or 'requested' if you want to run in parallel
+#    branches:
+#      - main       # optional: specify which branches to watch
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-site:
+  name: Build Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: website
+
+      - name: Setup Alpine Repository Structure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p website/.vitepress/dist/repo/apk/{x86_64,aarch64}
+          # Copy the latest .apk files from the release
+          for arch in x86_64 aarch64; do
+            case $arch in
+              x86_64) goarch="amd64" ;;
+              aarch64) goarch="arm64" ;;
+            esac
+            
+            # Download the latest release apk
+            gh release download --repo AutomationD/atun --pattern "*linux_${goarch}.apk" --dir /tmp
+            cp /tmp/*linux_${goarch}.apk website/.vitepress/dist/repo/apk/$arch/
+          done
+
+      - name: Generate Alpine Repository Index
+        run: |
+          # Install Alpine tools
+          sudo apk add --no-cache alpine-sdk
+          
+          # Generate repository signing key if not exists
+          if [ ! -f .alpine/atun.rsa ]; then
+            mkdir -p .alpine
+            openssl genrsa -out .alpine/atun.rsa 2048
+            openssl rsa -in .alpine/atun.rsa -pubout -out website/.vitepress/dist/repo/apk/atun@atd.sh-63e7522c.rsa.pub
+          fi
+          
+          # Sign and generate index for each architecture
+          for arch in x86_64 aarch64; do
+            cd website/.vitepress/dist/repo/apk/$arch
+            apk index -o APKINDEX.tar.gz *.apk
+            abuild-sign -k ~/.alpine/atun.rsa APKINDEX.tar.gz
+            cd -
+          done
+
+      - name: Build
+        run: |
+          npm run docs:build
+
+        working-directory: website
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ github.workspace }}/website/.vitepress/dist
+
+  deploy-site:
+  name: Deploy Site
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build-site
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
