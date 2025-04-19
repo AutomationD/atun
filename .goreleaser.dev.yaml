@@ -59,11 +59,11 @@ checksum:
 
 brews:
   - name: atun-dev
+    ids: [glibc_archive]
     repository:
       owner: AutomationD
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
     directory: Formula
     url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
@@ -81,11 +81,11 @@ brews:
       bin.install "atun"
 
   - name: atun-dev@{{ .Version }}
+    ids: [glibc_archive]
     repository:
       owner: AutomationD
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
     directory: Formula
     url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
@@ -150,3 +150,16 @@ nfpms:
         dst: /usr/share/doc/atun/LICENSE
       - src: ./README.md
         dst: /usr/share/doc/atun/README.md
+
+  - id: musl-packages
+    builds: [musl]
+    package_name: atun
+    file_name_template: "{{ .ProjectName }}-musl-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    vendor: AutomationD
+    homepage: https://github.com/AutomationD/atun
+    maintainer: Dmitry Kireev <dmitry@atd.sh>
+    description: atun.io is a simple SSM/SSH tunnel manager
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
