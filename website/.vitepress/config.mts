@@ -4,19 +4,14 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Atun",
   description: "Seamless, IAM-native access to private RDS, Elasticache, DynamoDB, and more. No VPNs, no SSH agents, no friction.",
+  
+  // Site configuration
   srcDir: 'docs',
   outDir: '.vitepress/dist',
-  
-  // Ensure Alpine repository files are copied as-is
   assetsDir: 'repo',
   vite: {
     build: {
-      rollupOptions: {
-        input: {
-          main: 'index.html',
-          apk: 'repo/apk/index.html'
-        }
-      }
+      copyPublicDir: true
     }
   },
 

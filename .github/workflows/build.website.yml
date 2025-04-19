@@ -59,9 +59,48 @@ jobs:
       - name: Setup Alpine Repository Structure
         env:
           ALPINE_PUBLIC_KEY: ${{ secrets.ALPINE_PUBLIC_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p website/.vitepress/dist/repo/apk
           echo "$ALPINE_PUBLIC_KEY" > website/.vitepress/dist/repo/apk/atun@atd.sh-63e7522c.rsa.pub
+          
+          # Create architecture directories
+          mkdir -p website/.vitepress/dist/repo/apk/{x86_64,aarch64}
+          
+          # Download APKs for each architecture
+          for arch in x86_64 aarch64; do
+            case $arch in
+              x86_64) goarch="amd64" ;;
+              aarch64) goarch="arm64" ;;
+            esac
+            
+            # Download the latest release apk
+            gh release download ${{ steps.get_version.outputs.version }} --pattern "*linux-${goarch}-*.apk" --dir /tmp
+            cp /tmp/*linux_${goarch}.apk website/.vitepress/dist/repo/apk/$arch/
+          done
+
+      - name: Setup Alpine Repository
+        env:
+          ALPINE_PRIVATE_KEY: ${{ secrets.ALPINE_PRIVATE_KEY }}
+        run: |
+          # Install Alpine tools for index generation
+          sudo apk add --no-cache alpine-sdk
+          
+          # Generate and sign APKINDEX for each architecture
+          for arch in x86_64 aarch64; do
+            if [ -n "$(ls -A website/.vitepress/dist/repo/apk/$arch/)" ]; then
+              cd website/.vitepress/dist/repo/apk/$arch/
+              # Write private key to temp file
+              echo "$ALPINE_PRIVATE_KEY" > private.rsa
+              # Generate and sign index
+              apk index -o APKINDEX.unsigned.tar.gz *.apk
+              openssl dgst -sha1 -sign private.rsa -out APKINDEX.tar.gz.sig APKINDEX.unsigned.tar.gz
+              mv APKINDEX.unsigned.tar.gz APKINDEX.tar.gz
+              # Cleanup
+              rm private.rsa
+              cd -
+            fi
+          done
 
       - name: Build
         run: |
