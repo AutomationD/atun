@@ -97,7 +97,7 @@ jobs:
 
   deploy-site:
     name: Deploy Site
-    envivronment:
+    environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build-site
