@@ -28,6 +28,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
 
+      - name: Install Alpine tools
+        run: sudo apk add --no-cache alpine-sdk
+
+      - name: Setup signing keys
+        env:
+          ALPINE_PRIVATE_KEY: ${{ secrets.ALPINE_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.alpine
+          echo "$ALPINE_PRIVATE_KEY" > ~/.alpine/atun.rsa
+          chmod 600 ~/.alpine/atun.rsa
+
       - name: Set env
         run: |
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
@@ -50,10 +61,16 @@ jobs:
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
 
+      - name: Sign APK files
+        run: |
+          for apk in dist/*.apk; do
+            if [ -f "$apk" ]; then
+              abuild-sign -k ~/.alpine/atun.rsa "$apk"
+            fi
+          done
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release edit "${{ env.RELEASE_VERSION }}" --draft=false --latest=false
-
-
