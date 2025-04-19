@@ -23,7 +23,8 @@ permissions:
   id-token: write
 
 jobs:
-  - build-site:
+  build-site:
+    name: Build Site
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -61,16 +62,19 @@ jobs:
           done
 
       - name: Generate Alpine Repository Index
+        env:
+          ALPINE_PRIVATE_KEY: ${{ secrets.ALPINE_PRIVATE_KEY }}
+          ALPINE_PUBLIC_KEY: ${{ secrets.ALPINE_PUBLIC_KEY }}
         run: |
           # Install Alpine tools
           sudo apk add --no-cache alpine-sdk
           
-          # Generate repository signing key if not exists
-          if [ ! -f .alpine/atun.rsa ]; then
-            mkdir -p .alpine
-            openssl genrsa -out .alpine/atun.rsa 2048
-            openssl rsa -in .alpine/atun.rsa -pubout -out website/.vitepress/dist/repo/apk/atun@atd.sh-63e7522c.rsa.pub
-          fi
+          # Setup the signing key from secrets
+          mkdir -p .alpine
+          echo "$ALPINE_PRIVATE_KEY" > .alpine/atun.rsa
+          chmod 600 .alpine/atun.rsa
+          mkdir -p website/.vitepress/dist/repo/apk
+          echo "$ALPINE_PUBLIC_KEY" > website/.vitepress/dist/repo/apk/atun@atd.sh-63e7522c.rsa.pub
           
           # Sign and generate index for each architecture
           for arch in x86_64 aarch64; do
@@ -93,12 +97,11 @@ jobs:
 
   deploy-site:
     name: Deploy Site
-    environment:
+    env:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build-site
     runs-on: ubuntu-latest
-    name: Deploy
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
