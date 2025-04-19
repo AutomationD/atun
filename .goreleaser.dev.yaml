@@ -32,8 +32,16 @@ builds:
       - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
 
 archives:
-  - id: release_archive
-    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  - id: glibc_archive
+    builds: [glibc]
+    name_template: "{{ .ProjectName }}-glibc-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+  - id: musl_archive
+    builds: [musl]
+    name_template: "{{ .ProjectName }}-musl-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
       - README.md
