@@ -135,9 +135,9 @@ scoops:
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
 
 nfpms:
-  - id: alpine
+  - id: alpine_musl
     package_name: atun
-    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-musl"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-{{.Id }}"
     ids:
       - musl
     formats:
@@ -153,10 +153,11 @@ nfpms:
       - src: ./README.md
         dst: /usr/share/doc/atun/README.md
 
-  - id: musl-packages
-    builds: [musl]
+  - id: linux
+    builds:
+      - glibc
     package_name: atun
-    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-musl"
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-{{.Id }}"
     vendor: AutomationD
     homepage: https://github.com/AutomationD/atun
     maintainer: Dmitry Kireev <dmitry@atd.sh>
