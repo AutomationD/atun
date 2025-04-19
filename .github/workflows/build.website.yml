@@ -23,8 +23,7 @@ permissions:
   id-token: write
 
 jobs:
-  build-site:
-  name: Build Docs
+  - build-site:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -93,7 +92,7 @@ jobs:
           path: ${{ github.workspace }}/website/.vitepress/dist
 
   deploy-site:
-  name: Deploy Site
+    name: Deploy Site
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
