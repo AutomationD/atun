@@ -70,7 +70,7 @@ jobs:
             
             # Download the latest release apk
             gh release download ${{ steps.get_version.outputs.version }} --pattern "*linux-${goarch}*.apk" --dir /tmp
-            cp /tmp/*linux_${goarch}.apk website/.vitepress/dist/repo/apk/$arch/
+            cp /tmp/*linux-${goarch}*.apk website/.vitepress/dist/repo/apk/$arch/
           done
 
       - name: Generate Alpine Repository Index
