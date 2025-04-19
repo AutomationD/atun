@@ -8,8 +8,12 @@ on:
     types:
       - created
 
+  workflow_dispatch:
+
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   goreleaser:
@@ -23,6 +27,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+
+      - name: Install Alpine tools
+        run: sudo apk add --no-cache alpine-sdk
+
+      - name: Setup signing keys
+        env:
+          ALPINE_PRIVATE_KEY: ${{ secrets.ALPINE_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.alpine
+          echo "$ALPINE_PRIVATE_KEY" > ~/.alpine/atun.rsa
+          chmod 600 ~/.alpine/atun.rsa
 
       - name: Set env
         run: |
@@ -45,6 +60,14 @@ jobs:
           FURY_TOKEN: ${{ secrets.FURY_PUSH_TOKEN }}
           GIT_SHA: ${{ env.SHORT_SHA }}
           GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Sign APK files
+        run: |
+          for apk in dist/*.apk; do
+            if [ -f "$apk" ]; then
+              abuild-sign -k ~/.alpine/atun.rsa "$apk"
+            fi
+          done
 
       - name: Publish release
         env:

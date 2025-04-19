@@ -3,7 +3,7 @@ version: 2
 project_name: atun
 
 builds:
-  - id: atun
+  - id: glibc
     main: ./main.go
     env:
       - CGO_ENABLED=0
@@ -17,9 +17,31 @@ builds:
     ldflags:
       - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
 
+  - id: musl
+    main: ./main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    tags:
+      - musl
+    ldflags:
+      - -s -w -X 'github.com/automationd/atun/internal/version.Version={{.Version}}' -X 'github.com/automationd/atun/internal/version.GitCommit={{.Env.SHORT_SHA}}'
+
 archives:
-  - id: release_archive
+  - id: glibc
+    builds: [glibc]
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+  - id: musl
+    builds: [musl]
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}-musl"
     files:
       - LICENSE
       - README.md
@@ -37,11 +59,12 @@ checksum:
 
 brews:
   - name: atun-dev
+    ids:
+      - glibc
     repository:
       owner: AutomationD
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
     directory: Formula
     url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
@@ -59,11 +82,12 @@ brews:
       bin.install "atun"
 
   - name: atun-dev@{{ .Version }}
+    ids:
+      - glibc
     repository:
       owner: AutomationD
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
     directory: Formula
     url_template: "https://github.com/AutomationD/atun/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     commit_author:
@@ -109,3 +133,36 @@ scoops:
       name: scoop-bucket
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+nfpms:
+  - id: musl
+    package_name: atun
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}-musl"
+    ids:
+      - musl
+    formats:
+      - apk
+    vendor: Dmitry Kireev
+    homepage: https://atun.io
+    maintainer: Dmitry Kireev <dmitry@atd.sh>
+    description: atun.io is a simple SSM/SSH tunnel manager
+    license: Apache 2.0
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/atun/LICENSE
+      - src: ./README.md
+        dst: /usr/share/doc/atun/README.md
+
+  - id: glibc
+    builds:
+      - glibc
+    package_name: atun
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    vendor: AutomationD
+    homepage: https://github.com/AutomationD/atun
+    maintainer: Dmitry Kireev <dmitry@atd.sh>
+    description: atun.io is a simple SSM/SSH tunnel manager
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm

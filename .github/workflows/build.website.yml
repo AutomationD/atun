@@ -1,0 +1,119 @@
+name: Build & Deploy Website
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+on:
+#  push:
+#    branches:
+#      - main
+#      - feature/wip
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Dev Build"
+      - "Release Build"
+    types:
+      - completed   # or 'requested' if you want to run in parallel
+#    branches:
+#      - main       # optional: specify which branches to watch
+#      - feature/wip       # optional: specify which branches to watch
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-site:
+    name: Build Site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version from triggering workflow
+        id: get_version
+        run: |
+          if [[ "${{ github.event.workflow_run.name }}" != "Release Build" ]]; then
+            echo "version=v0.0.0"
+          else
+            # For release builds, extract version from the tag that triggered the build
+            echo "version=${{ github.event.workflow_run.head_branch }}"
+          fi >> $GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: website
+
+      - name: Setup Alpine Repository Structure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p website/.vitepress/dist/repo/apk/{x86_64,aarch64}
+          # Copy the latest .apk files from the release
+          for arch in x86_64 aarch64; do
+            case $arch in
+              x86_64) goarch="amd64" ;;
+              aarch64) goarch="arm64" ;;
+            esac
+            
+            # Download the latest release apk
+            gh release download ${{ steps.get_version.outputs.version }} --pattern "*linux-${goarch}*.apk" --dir /tmp
+            cp /tmp/*linux-${goarch}*.apk website/.vitepress/dist/repo/apk/$arch/
+          done
+
+      - name: Generate Alpine Repository Index
+        env:
+          ALPINE_PRIVATE_KEY: ${{ secrets.ALPINE_PRIVATE_KEY }}
+          ALPINE_PUBLIC_KEY: ${{ secrets.ALPINE_PUBLIC_KEY }}
+        run: |
+          # Install Alpine tools
+          sudo apk add --no-cache alpine-sdk
+          
+          # Setup the signing key from secrets
+          mkdir -p .alpine
+          echo "$ALPINE_PRIVATE_KEY" > .alpine/atun.rsa
+          chmod 600 .alpine/atun.rsa
+          mkdir -p website/.vitepress/dist/repo/apk
+          echo "$ALPINE_PUBLIC_KEY" > website/.vitepress/dist/repo/apk/atun@atd.sh-63e7522c.rsa.pub
+          
+          # Sign and generate index for each architecture
+          for arch in x86_64 aarch64; do
+            cd website/.vitepress/dist/repo/apk/$arch
+            apk index -o APKINDEX.tar.gz *.apk
+            abuild-sign -k ~/.alpine/atun.rsa APKINDEX.tar.gz
+            cd -
+          done
+
+      - name: Build
+        run: |
+          npm run docs:build
+        working-directory: website
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ github.workspace }}/website/.vitepress/dist
+
+  deploy-site:
+    name: Deploy Site
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build-site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

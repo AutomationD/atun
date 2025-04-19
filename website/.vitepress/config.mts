@@ -4,20 +4,17 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Atun",
   description: "Seamless, IAM-native access to private RDS, Elasticache, DynamoDB, and more. No VPNs, no SSH agents, no friction.",
+  
+  // Site configuration
   srcDir: 'docs',
-  // head: [
-  //   ['style', {}, `
-  //     :root {
-  //       --vp-c-bg: #009DFF !important;
-  //     }
-  //   `]
-  // ],
-  rewrites: {
-    'release/:version': {
-      replace: (match: { version: string }) =>
-          `https://github.com/AutomationD/atun/releases/tag/${match.version}`
+  outDir: '.vitepress/dist',
+  assetsDir: 'repo',
+  vite: {
+    build: {
+      copyPublicDir: true
     }
   },
+
   appearance: false,
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
@@ -59,7 +56,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under Apache 2.0 License.',
-      copyright: 'Copyright © 2025 Dmitry Kireev'
+      copyright: 'Copyright 2025 Dmitry Kireev'
     }
   }
 })
